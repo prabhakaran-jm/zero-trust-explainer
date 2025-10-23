@@ -1,0 +1,95 @@
+.job-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.job-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.job-card.selected {
+  border-color: #667eea;
+  background: #f8f9ff;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.job-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.job-card-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+  font-family: monospace;
+}
+
+.finding-count {
+  background: #667eea;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.severity-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.severity-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.severity-badge {
+  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  min-width: 20px;
+  text-align: center;
+}
+
+.job-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.job-card-footer small {
+  color: #666;
+  font-size: 0.8rem;
+}
+
+.propose-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.2s;
+}
+
+.propose-btn:hover {
+  background: #218838;
+}

@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-test-project}
+      - PUBSUB_TOPIC=${PUBSUB_TOPIC:-zte-scan-requests}
+      - BQ_DATASET=${BQ_DATASET:-zero_trust_explainer}
+      - BQ_TABLE=${BQ_TABLE:-findings}
+      - REPORT_BUCKET=${REPORT_BUCKET:-}
+      - PROPOSE_JOB_NAME=${PROPOSE_JOB_NAME:-zte-propose-job}
+      - REGION=${REGION:-us-central1}
+      - PORT=8080
+    volumes:
+      - ./backend:/app
+    networks:
+      - zte-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:8080"
+    environment:
+      - VITE_API_URL=http://backend:8080
+    depends_on:
+      - backend
+    networks:
+      - zte-network
+
+networks:
+  zte-network:
+    driver: bridge
