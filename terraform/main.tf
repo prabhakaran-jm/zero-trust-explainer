@@ -1,6 +1,6 @@
 terraform {
   required_version = ">= 1.5"
-  
+
   required_providers {
     google = {
       source  = "hashicorp/google"
@@ -44,7 +44,7 @@ resource "google_project_service" "required_apis" {
     "bigquery.googleapis.com",
     "storage.googleapis.com",
   ])
-  
+
   service            = each.value
   disable_on_destroy = false
 }
@@ -281,10 +281,10 @@ resource "google_cloud_run_v2_service" "backend_api" {
 
 # IAM policy to allow public access to backend
 resource "google_cloud_run_v2_service_iam_member" "backend_public_access" {
-  name   = google_cloud_run_v2_service.backend_api.name
+  name     = google_cloud_run_v2_service.backend_api.name
   location = google_cloud_run_v2_service.backend_api.location
-  role   = "roles/run.invoker"
-  member = "allUsers"
+  role     = "roles/run.invoker"
+  member   = "allUsers"
 }
 
 # Cloud Run Service - Frontend
@@ -328,10 +328,10 @@ resource "google_cloud_run_v2_service" "frontend" {
 
 # IAM policy to allow public access to frontend
 resource "google_cloud_run_v2_service_iam_member" "frontend_public_access" {
-  name   = google_cloud_run_v2_service.frontend.name
+  name     = google_cloud_run_v2_service.frontend.name
   location = google_cloud_run_v2_service.frontend.location
-  role   = "roles/run.invoker"
-  member = "allUsers"
+  role     = "roles/run.invoker"
+  member   = "allUsers"
 }
 
 # Cloud Run Job for propose functionality
@@ -345,7 +345,7 @@ resource "google_cloud_run_v2_job" "propose_job" {
 
       containers {
         image = var.backend_image
-        
+
         command = ["python"]
         args    = ["-c", "print('Propose job executed'); import time; time.sleep(5)"]
 
