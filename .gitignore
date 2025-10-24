@@ -45,6 +45,7 @@ credentials.json
 .env
 .env.local
 .env.*.local
+frontend/.env.production
 
 # Logs
 *.log
