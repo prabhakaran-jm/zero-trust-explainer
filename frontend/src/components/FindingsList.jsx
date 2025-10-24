@@ -46,10 +46,10 @@ function FindingsList({ findings, onExplain, loading }) {
               {finding.created_at && new Date(finding.created_at).toLocaleString()}
             </small>
             <button 
-              className="explain-btn"
+              className="explain-btn ai-powered-btn"
               onClick={() => onExplain(finding.id)}
             >
-              📖 Explain
+              🤖 AI Explain
             </button>
           </div>
         </div>

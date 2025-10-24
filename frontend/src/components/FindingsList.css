@@ -97,6 +97,33 @@
   background: #5568d3;
 }
 
+.ai-powered-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-powered-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.ai-powered-btn:hover::before {
+  left: 100%;
+}
+
+.ai-powered-btn:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #6a4c93 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
 .loading,
 .no-findings {
   text-align: center;

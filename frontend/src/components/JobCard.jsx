@@ -64,13 +64,13 @@ function JobCard({ job, isSelected, onSelect, onPropose }) {
           {job.first_finding_at && new Date(job.first_finding_at).toLocaleString()}
         </small>
         <button 
-          className="propose-btn"
+          className="propose-btn ai-powered-btn"
           onClick={(e) => {
             e.stopPropagation()
             onPropose(job.job_id)
           }}
         >
-          💡 Propose
+          🤖 AI Propose
         </button>
       </div>
     </div>
