@@ -151,7 +151,7 @@ class AIService:
         
         try:
             prompt = f"""
-            You are a cybersecurity expert explaining Cloud Run IAM security findings.
+            You are a cybersecurity expert analyzing Google Cloud security findings. Provide intelligent risk prioritization.
             
             Finding Details:
             - Resource Type: {finding.resource_type}
@@ -159,13 +159,18 @@ class AIService:
             - Severity: {finding.severity}
             - Issue: {finding.issue_description}
             - Recommendation: {finding.recommendation}
+            - Risk Score: {finding.risk_score}/100
+            - Affected Resources: {finding.affected_resources}
             
-            Please provide:
-            1. A clear, non-technical explanation of what this security issue means
-            2. The potential blast radius (what could be affected if exploited)
-            3. A risk assessment with business impact
-            
-            Format your response as JSON with keys: explanation, blast_radius, risk_assessment
+            Provide comprehensive analysis in JSON format with these keys:
+            - explanation: Clear technical explanation of the security issue
+            - blast_radius: Natural language description of potential impact scope
+            - risk_assessment: Business risk assessment with priority level
+            - priority_score: Numerical priority score (1-100, higher = more urgent)
+            - business_impact: High/Medium/Low business impact assessment
+            - remediation_urgency: Immediate/High/Medium/Low urgency level
+            - attack_vector: How this vulnerability could be exploited
+            - compliance_impact: Potential compliance violations (SOC2, PCI, etc.)
             """
             
             response = self.model.generate_content(prompt)
@@ -192,7 +197,12 @@ class AIService:
                 "ai_explanation": ai_data.get("explanation", response.text),
                 "blast_radius": ai_data.get("blast_radius", "Analysis in progress"),
                 "risk_assessment": ai_data.get("risk_assessment", "Manual review recommended"),
-                "ai_model": "gemini-pro",
+                "priority_score": ai_data.get("priority_score", finding.risk_score),
+                "business_impact": ai_data.get("business_impact", "Medium"),
+                "remediation_urgency": ai_data.get("remediation_urgency", "Medium"),
+                "attack_vector": ai_data.get("attack_vector", "Manual analysis required"),
+                "compliance_impact": ai_data.get("compliance_impact", "Review required"),
+                "ai_model": "gemini-2.0-flash",
                 "ai_powered": True
             }
             
@@ -243,12 +253,118 @@ class AIService:
             "ai_explanation": explanation,
             "blast_radius": blast_radius,
             "risk_assessment": risk_assessment,
+            "priority_score": finding.risk_score,
+            "business_impact": "High" if severity in ["CRITICAL", "HIGH"] else "Medium" if severity == "MEDIUM" else "Low",
+            "remediation_urgency": "Immediate" if severity == "CRITICAL" else "High" if severity == "HIGH" else "Medium" if severity == "MEDIUM" else "Low",
+            "attack_vector": "Manual analysis required",
+            "compliance_impact": "Review required",
+            "ai_model": "fallback-analysis",
+            "ai_powered": False
+        }
+    
+    def generate_scan_summary(self, findings: List[Finding]) -> Dict[str, Any]:
+        """Generate AI-powered summary of scan results."""
+        if not self.ai_enabled:
+            return self._generate_fallback_summary(findings)
+        
+        try:
+            # Prepare findings data for AI analysis
+            findings_data = []
+            severity_counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
+            
+            for finding in findings:
+                severity_counts[finding.severity] += 1
+                findings_data.append({
+                    "severity": finding.severity,
+                    "resource_type": finding.resource_type,
+                    "resource_name": finding.resource_name,
+                    "issue": finding.issue_description,
+                    "risk_score": finding.risk_score
+                })
+            
+            prompt = f"""
+            You are a cybersecurity expert analyzing a Google Cloud security scan. Provide a comprehensive executive summary.
+            
+            Scan Results:
+            - Total Findings: {len(findings)}
+            - Critical: {severity_counts['CRITICAL']}
+            - High: {severity_counts['HIGH']}
+            - Medium: {severity_counts['MEDIUM']}
+            - Low: {severity_counts['LOW']}
+            
+            Key Findings:
+            {json.dumps(findings_data[:10], indent=2)}  # Limit to first 10 for prompt size
+            
+            Provide analysis in JSON format with these keys:
+            - executive_summary: High-level overview for executives
+            - risk_overview: Overall risk assessment
+            - top_concerns: Top 3 most critical issues
+            - compliance_status: Compliance impact assessment
+            - remediation_roadmap: Phased approach to fixing issues
+            - business_impact: Overall business risk
+            - recommendations: Strategic recommendations
+            """
+            
+            response = self.model.generate_content(prompt)
+            
+            if not response or not hasattr(response, 'text') or not response.text:
+                logger.error("Empty response from Gemini API for summary")
+                return self._generate_fallback_summary(findings)
+            
+            try:
+                ai_data = json.loads(response.text)
+            except json.JSONDecodeError as e:
+                logger.warning(f"JSON parsing failed for summary: {e}")
+                ai_data = {
+                    "executive_summary": response.text,
+                    "risk_overview": "Manual review required",
+                    "top_concerns": ["Review all findings manually"],
+                    "compliance_status": "Assessment required",
+                    "remediation_roadmap": "Manual planning needed",
+                    "business_impact": "Medium",
+                    "recommendations": ["Conduct manual security review"]
+                }
+            
+            return {
+                "executive_summary": ai_data.get("executive_summary", "Summary generation failed"),
+                "risk_overview": ai_data.get("risk_overview", "Manual assessment required"),
+                "top_concerns": ai_data.get("top_concerns", []),
+                "compliance_status": ai_data.get("compliance_status", "Review required"),
+                "remediation_roadmap": ai_data.get("remediation_roadmap", "Manual planning needed"),
+                "business_impact": ai_data.get("business_impact", "Medium"),
+                "recommendations": ai_data.get("recommendations", []),
+                "severity_counts": severity_counts,
+                "ai_model": "gemini-2.0-flash",
+                "ai_powered": True
+            }
+            
+        except Exception as e:
+            logger.error(f"AI summary generation failed: {e}")
+            return self._generate_fallback_summary(findings)
+    
+    def _generate_fallback_summary(self, findings: List[Finding]) -> Dict[str, Any]:
+        """Generate fallback summary when AI is not available."""
+        severity_counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
+        
+        for finding in findings:
+            severity_counts[finding.severity] += 1
+        
+        total_critical_high = severity_counts["CRITICAL"] + severity_counts["HIGH"]
+        
+        return {
+            "executive_summary": f"Security scan completed with {len(findings)} findings. {total_critical_high} high-priority issues require immediate attention.",
+            "risk_overview": f"Overall risk level: {'HIGH' if total_critical_high > 5 else 'MEDIUM' if total_critical_high > 0 else 'LOW'}",
+            "top_concerns": [f"{severity_counts['CRITICAL']} critical issues", f"{severity_counts['HIGH']} high-severity issues"],
+            "compliance_status": "Manual compliance review required",
+            "remediation_roadmap": "Phase 1: Critical issues, Phase 2: High issues, Phase 3: Medium/Low issues",
+            "business_impact": "High" if total_critical_high > 5 else "Medium" if total_critical_high > 0 else "Low",
+            "recommendations": ["Address critical issues immediately", "Implement security best practices", "Regular security scanning"],
+            "severity_counts": severity_counts,
             "ai_model": "fallback-analysis",
             "ai_powered": False
         }
     
     def generate_fix_proposal(self, findings: List[Finding]) -> Dict[str, Any]:
-        """Generate AI-powered fix proposals with Terraform code."""
         if not self.ai_enabled:
             return {
                 "ai_proposal": "AI features disabled - API key not configured",
@@ -715,6 +831,41 @@ async def propose_fixes(job_id: str, request: Optional[ProposeRequest] = None):
     except Exception as e:
         logger.error(f"Error triggering propose job: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to trigger propose job: {str(e)}")
+
+
+@app.get("/summary/{job_id}")
+async def get_ai_summary(job_id: str):
+    """
+    Generate AI-powered summary of scan results.
+    
+    Args:
+        job_id: The job identifier
+        
+    Returns:
+        AI-generated summary with insights and recommendations
+    """
+    try:
+        # Get findings for the job
+        findings = await get_findings(job_id)
+        
+        if not findings:
+            raise HTTPException(status_code=404, detail=f"No findings found for job {job_id}")
+        
+        # Generate AI summary
+        summary = ai_service.generate_scan_summary(findings)
+        
+        return {
+            "job_id": job_id,
+            "summary": summary,
+            "total_findings": len(findings),
+            "ai_powered": True
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating AI summary: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate AI summary: {str(e)}")
 
 
 @app.get("/jobs")

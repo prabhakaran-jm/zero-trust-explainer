@@ -1,47 +1,53 @@
-# Zero-Trust Explainer (ZTE)
+# Zero-Trust Explainer (ZTE) 🤖
 
-Human-readable IAM diffs for Cloud Run — find risk, explain blast radius, ship least-privilege patches (with proofs).
+**AI-Powered Security Analysis for Google Cloud Run** — Find risk, explain blast radius, ship least-privilege patches with AI-generated insights and remediation code.
 
 ## Overview
 
-Zero-Trust Explainer is a comprehensive security scanning and analysis tool for Google Cloud Run services. It helps identify IAM misconfigurations, explains security risks with blast radius analysis, and proposes least-privilege fixes.
+Zero-Trust Explainer is a comprehensive security scanning and analysis tool for Google Cloud Run services, enhanced with **Google AI Studio** and **Gemini Pro** integration. It helps identify IAM misconfigurations, explains security risks with AI-powered blast radius analysis, and proposes least-privilege fixes with intelligent remediation guides.
 
 ### Features
 
 - 🔍 **Scan Cloud Run Services**: Submit scan requests via REST API to analyze IAM configurations
 - 📊 **View Findings**: Query findings from BigQuery with filtering by job ID and severity
-- 💡 **Explain Risks**: Get detailed explanations with blast radius analysis for each finding
-- 🛠️ **Propose Fixes**: Trigger automated least-privilege fix proposals via Cloud Run Jobs
-- 📁 **Signed Reports**: Generate and access security reports via signed GCS URLs
-- 🎨 **Modern UI**: React/Vite frontend with job cards, severity filters, and action buttons
+- 🤖 **AI-Powered Explanations**: Get intelligent security analysis with blast radius, risk assessment, and business impact
+- 🎯 **Smart Risk Prioritization**: AI-driven priority scoring and remediation urgency assessment
+- 🛠️ **AI-Generated Fixes**: Automated Terraform/IAM remediation code with step-by-step guides
+- 📋 **Executive Summaries**: AI-powered scan summaries with compliance impact and strategic recommendations
+- 📁 **Signed Reports**: Generate and access comprehensive security reports via signed GCS URLs
+- 🎨 **Modern UI**: React/Vite frontend with AI indicators, job cards, severity filters, and action buttons
 
 ## Architecture
 
-### Backend (FastAPI)
+### AI-Powered Backend (FastAPI + Gemini Pro)
 - **POST /scan** - Publishes scan requests to Pub/Sub
 - **GET /findings/{job_id}** - Retrieves findings from BigQuery with optional severity filtering
-- **GET /explain/{id}** - Provides detailed explanation with blast radius analysis
-- **POST /propose/{job_id}** - Triggers Cloud Run Job to propose least-privilege fixes
+- **GET /explain/{id}** - 🤖 AI-powered explanations with blast radius, risk assessment, and business impact
+- **GET /summary/{job_id}** - 🤖 AI-generated executive summaries with compliance analysis
+- **POST /propose/{job_id}** - 🤖 Triggers Cloud Run Job to generate AI-powered Terraform/IAM fixes
 - **GET /jobs** - Lists recent scan jobs with summary statistics
 
 ### Frontend (React/Vite)
-- Job cards with severity breakdown (critical, high, medium, low)
-- Filtering by job_id and severity
-- Actions: Scan, Refresh, Explain, Propose
-- Real-time updates and loading states
+- 🤖 AI-powered job cards with intelligent severity breakdown
+- Advanced filtering by job_id and severity
+- Actions: Scan, Refresh, 🤖 AI Explain, 🤖 AI Propose
+- Real-time updates and loading states with AI indicators
+- Beautiful modal displays for AI-generated content
 
 ### Infrastructure (Terraform)
 - **Artifact Registry**: Container image repository
 - **Cloud Run Services**: Backend API and Frontend
-- **Cloud Run Job**: Propose fixes execution
+- **Cloud Run Job**: 🤖 AI-powered fix proposal execution
 - **Pub/Sub**: Scan request queue
 - **BigQuery**: Findings data warehouse
 - **GCS Bucket**: Report storage with signed URLs
+- **Google AI Studio**: Gemini Pro integration for intelligent analysis
 
 ## Prerequisites
 
 - Google Cloud Platform account
 - GCP Project with billing enabled
+- **Google AI Studio API Key** (for Gemini Pro integration)
 - Terraform >= 1.5
 - Docker
 - Node.js >= 20 (for local frontend development)
@@ -49,7 +55,13 @@ Zero-Trust Explainer is a comprehensive security scanning and analysis tool for 
 
 ## Setup
 
-### 1. Configure GCP
+### 1. Configure Google AI Studio
+
+1. Visit [Google AI Studio](https://aistudio.google.com/)
+2. Create a new API key
+3. Copy the API key for use in configuration
+
+### 2. Configure GCP
 
 ```bash
 # Set your project ID
@@ -64,7 +76,7 @@ gcloud services enable \
   storage.googleapis.com
 ```
 
-### 2. Local Development
+### 3. Local Development
 
 #### Backend
 ```bash
@@ -75,6 +87,7 @@ pip install -r requirements.txt
 
 # Set environment variables
 export GCP_PROJECT_ID="your-project-id"
+export GEMINI_API_KEY="your-ai-studio-api-key"  # 🤖 AI Studio API Key
 export PUBSUB_TOPIC="zte-scan-requests"
 export BQ_DATASET="zero_trust_explainer"
 export BQ_TABLE="findings"
@@ -97,7 +110,7 @@ export VITE_API_URL="http://localhost:8080"
 npm run dev
 ```
 
-### 3. Deploy with Terraform
+### 4. Deploy with Terraform
 
 ```bash
 cd terraform
@@ -111,6 +124,7 @@ project_id = "your-project-id"
 region = "us-central1"
 backend_image = "us-central1-docker.pkg.dev/your-project-id/zte-repo/backend:latest"
 frontend_image = "us-central1-docker.pkg.dev/your-project-id/zte-repo/frontend:latest"
+gemini_api_key = "your-ai-studio-api-key"  # 🤖 AI Studio API Key
 EOF
 
 # Plan deployment
@@ -120,7 +134,7 @@ terraform plan
 terraform apply
 ```
 
-### 4. GitHub Actions Deployment
+### 5. GitHub Actions Deployment
 
 1. Create GCP Service Account with required permissions:
 ```bash
@@ -138,6 +152,7 @@ gcloud iam service-accounts keys create key.json \
 2. Add GitHub Secrets:
 - `GCP_PROJECT_ID`: Your GCP project ID
 - `GCP_SA_KEY`: Contents of key.json file
+- `GEMINI_API_KEY`: Your Google AI Studio API key 🤖
 
 3. Push to main branch to trigger deployment
 
@@ -159,15 +174,39 @@ curl -X POST https://your-backend-url/scan \
 curl https://your-backend-url/findings/{job_id}?severity=high
 ```
 
-### Explain Finding
+### 🤖 AI Explain Finding
 ```bash
 curl https://your-backend-url/explain/{finding_id}
 ```
+**Response includes:**
+- AI-powered explanation
+- Blast radius analysis
+- Risk assessment with business impact
+- Priority score and remediation urgency
+- Attack vector analysis
+- Compliance impact assessment
 
-### Propose Fixes
+### 🤖 AI Generate Summary
+```bash
+curl https://your-backend-url/summary/{job_id}
+```
+**Response includes:**
+- Executive summary
+- Risk overview
+- Top concerns
+- Compliance status
+- Remediation roadmap
+- Strategic recommendations
+
+### 🤖 AI Propose Fixes
 ```bash
 curl -X POST https://your-backend-url/propose/{job_id}
 ```
+**Response includes:**
+- AI-generated Terraform code
+- Step-by-step implementation guides
+- Testing recommendations
+- Risk prioritization
 
 ### List Jobs
 ```bash
@@ -178,6 +217,7 @@ curl https://your-backend-url/jobs?limit=50
 
 ### Backend
 - `GCP_PROJECT_ID` - GCP project ID
+- `GEMINI_API_KEY` - 🤖 Google AI Studio API key for Gemini Pro
 - `PUBSUB_TOPIC` - Pub/Sub topic name (default: zte-scan-requests)
 - `BQ_DATASET` - BigQuery dataset ID (default: zero_trust_explainer)
 - `BQ_TABLE` - BigQuery table name (default: findings)

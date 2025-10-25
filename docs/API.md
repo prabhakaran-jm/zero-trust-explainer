@@ -1,6 +1,6 @@
-# API Documentation
+# API Documentation 🤖
 
-Zero-Trust Explainer REST API reference.
+Zero-Trust Explainer REST API reference with **AI-powered security analysis** using Google AI Studio and Gemini Pro.
 
 ## Base URL
 ```
@@ -117,8 +117,8 @@ Retrieve findings for a specific scan job.
 
 ---
 
-#### GET /explain/{finding_id}
-Get detailed explanation for a specific finding with blast radius analysis.
+#### GET /explain/{finding_id} 🤖
+Get AI-powered detailed explanation for a specific finding with intelligent analysis.
 
 **Path Parameters**
 - `finding_id` (string, required): The finding identifier
@@ -133,12 +133,16 @@ Get detailed explanation for a specific finding with blast radius analysis.
   "resource_name": "my-public-service",
   "issue_description": "Service allows unauthenticated access",
   "recommendation": "Remove allUsers from invoker role",
-  "blast_radius": {
-    "description": "Public access allows any internet user to invoke the service",
-    "affected_resources": ["my-public-service", "downstream-api"],
-    "risk_score": 95
-  },
-  "explanation": "This critical severity issue affects my-public-service...",
+  "ai_explanation": "This critical security vulnerability exposes your payment processing service to unauthorized access...",
+  "blast_radius": "If exploited, this vulnerability could affect your entire application infrastructure, leading to data breaches...",
+  "risk_assessment": "CRITICAL RISK - Immediate action required. This vulnerability poses significant business risk...",
+  "priority_score": 95,
+  "business_impact": "High",
+  "remediation_urgency": "Immediate",
+  "attack_vector": "Attackers can directly invoke the service without authentication...",
+  "compliance_impact": "Potential SOC2 and PCI DSS violations due to unauthorized access",
+  "ai_model": "gemini-2.0-flash",
+  "ai_powered": true,
   "created_at": "2024-01-15T10:30:00Z"
 }
 ```
@@ -152,10 +156,59 @@ Get detailed explanation for a specific finding with blast radius analysis.
 
 ---
 
+#### GET /summary/{job_id} 🤖
+Generate AI-powered executive summary of scan results with strategic insights.
+
+**Path Parameters**
+- `job_id` (string, required): The job identifier
+
+**Response** (200 OK)
+```json
+{
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "summary": {
+    "executive_summary": "Security scan completed with 7 findings. 4 high-priority issues require immediate attention...",
+    "risk_overview": "Overall risk level: HIGH - Multiple critical vulnerabilities detected",
+    "top_concerns": [
+      "Payment processor service allows unauthenticated access",
+      "Service account has excessive Editor permissions",
+      "API keys stored as plain text environment variables"
+    ],
+    "compliance_status": "SOC2 and PCI DSS compliance at risk due to critical findings",
+    "remediation_roadmap": "Phase 1: Address critical issues (1-2 days), Phase 2: High severity (1 week), Phase 3: Medium/Low (2-4 weeks)",
+    "business_impact": "High",
+    "recommendations": [
+      "Implement immediate access controls",
+      "Migrate to least-privilege IAM model",
+      "Deploy Secret Manager for sensitive data"
+    ],
+    "severity_counts": {
+      "CRITICAL": 1,
+      "HIGH": 3,
+      "MEDIUM": 2,
+      "LOW": 1
+    },
+    "ai_model": "gemini-2.0-flash",
+    "ai_powered": true
+  },
+  "total_findings": 7,
+  "ai_powered": true
+}
+```
+
+**Error Response** (404 Not Found)
+```json
+{
+  "detail": "No findings found for job 550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+---
+
 ### Proposal Operations
 
-#### POST /propose/{job_id}
-Trigger Cloud Run Job to propose least-privilege fixes.
+#### POST /propose/{job_id} 🤖
+Trigger AI-powered Cloud Run Job to generate intelligent Terraform/IAM fixes with step-by-step guides.
 
 **Path Parameters**
 - `job_id` (string, required): The job identifier
@@ -178,13 +231,14 @@ Trigger Cloud Run Job to propose least-privilege fixes.
   "status": "triggered",
   "execution_name": "projects/my-project/locations/us-central1/jobs/zte-propose-job/executions/...",
   "report_url": "https://storage.googleapis.com/...",
-  "message": "Propose job triggered successfully"
+  "message": "AI-powered propose job triggered successfully"
 }
 ```
 
 **Notes**
 - `report_url` is only included if `REPORT_BUCKET` environment variable is set
 - Signed URL is valid for 1 hour
+- Report includes AI-generated Terraform code, implementation steps, and testing recommendations
 
 **Error Response** (500 Internal Server Error)
 ```json
@@ -272,11 +326,14 @@ sleep 10
 # 3. Get findings
 curl -s "https://your-backend-url.run.app/findings/${JOB_ID}" | jq
 
-# 4. Get explanation for a specific finding
+# 4. Get AI explanation for a specific finding
 FINDING_ID=$(curl -s "https://your-backend-url.run.app/findings/${JOB_ID}" | jq -r '.findings[0].id')
 curl -s "https://your-backend-url.run.app/explain/${FINDING_ID}" | jq
 
-# 5. Trigger fix proposal
+# 5. Generate AI-powered executive summary
+curl -s "https://your-backend-url.run.app/summary/${JOB_ID}" | jq
+
+# 6. Trigger AI-powered fix proposal
 curl -s -X POST "https://your-backend-url.run.app/propose/${JOB_ID}" | jq
 ```
 
@@ -319,11 +376,18 @@ job_id = response.json()["job_id"]
 findings = requests.get(f"{BASE_URL}/findings/{job_id}").json()
 print(f"Found {findings['count']} findings")
 
-# Explain first finding
+# Explain first finding with AI
 if findings['findings']:
     finding_id = findings['findings'][0]['id']
     explanation = requests.get(f"{BASE_URL}/explain/{finding_id}").json()
-    print(explanation['explanation'])
+    print(f"AI Explanation: {explanation['ai_explanation']}")
+    print(f"Risk Assessment: {explanation['risk_assessment']}")
+    print(f"Business Impact: {explanation['business_impact']}")
+
+# Generate AI summary
+summary = requests.get(f"{BASE_URL}/summary/{job_id}").json()
+print(f"Executive Summary: {summary['summary']['executive_summary']}")
+print(f"Top Concerns: {summary['summary']['top_concerns']}")
 ```
 
 ### JavaScript
@@ -346,13 +410,21 @@ const findingsResponse = await fetch(`${BASE_URL}/findings/${job_id}`);
 const findings = await findingsResponse.json();
 console.log(`Found ${findings.count} findings`);
 
-// Explain finding
+// Explain finding with AI
 if (findings.findings.length > 0) {
   const findingId = findings.findings[0].id;
   const explanationResponse = await fetch(`${BASE_URL}/explain/${findingId}`);
   const explanation = await explanationResponse.json();
-  console.log(explanation.explanation);
+  console.log(`AI Explanation: ${explanation.ai_explanation}`);
+  console.log(`Risk Assessment: ${explanation.risk_assessment}`);
+  console.log(`Business Impact: ${explanation.business_impact}`);
 }
+
+// Generate AI summary
+const summaryResponse = await fetch(`${BASE_URL}/summary/${job_id}`);
+const summary = await summaryResponse.json();
+console.log(`Executive Summary: ${summary.summary.executive_summary}`);
+console.log(`Top Concerns: ${summary.summary.top_concerns.join(', ')}`);
 ```
 
 ## WebSocket Support
