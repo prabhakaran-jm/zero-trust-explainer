@@ -495,32 +495,9 @@ async def scan(request: ScanRequest):
         
         logger.info(f"Published scan request with job_id={job_id}, message_id={message_id}")
         
-        # Trigger scan processor job
-        try:
-            scan_job_name = f"projects/{PROJECT_ID}/locations/{REGION}/jobs/zte-scan-processor"
-            job_client = run_v2.JobsClient()
-            
-            request = run_v2.RunJobRequest(
-                name=scan_job_name,
-                overrides=run_v2.RunJobRequestOverrides(
-                    container_overrides=[
-                        run_v2.RunJobRequestOverridesContainerOverrides(
-                            env=[
-                                run_v2.env_var.EnvVar(name="JOB_ID", value=job_id),
-                                run_v2.env_var.EnvVar(name="SERVICE_NAME", value=request.service_name),
-                                run_v2.env_var.EnvVar(name="REGION", value=request.region or REGION),
-                                run_v2.env_var.EnvVar(name="PROJECT_ID", value=request.project_id or PROJECT_ID),
-                            ]
-                        )
-                    ]
-                )
-            )
-            
-            operation = job_client.run_job(request=request)
-            logger.info(f"Triggered scan processor job: {operation.name}")
-        except Exception as job_error:
-            logger.warning(f"Failed to trigger scan processor job: {job_error}")
-            # Continue anyway - scan was published to Pub/Sub
+        # Note: Scan processor job can be triggered manually via:
+        # gcloud run jobs execute zte-scan-processor --args=scan_processor.py
+        # For now, we just publish to Pub/Sub
         
         return {
             "job_id": job_id,

@@ -9,6 +9,7 @@ import json
 import logging
 from datetime import datetime
 from google.cloud import pubsub_v1, bigquery, run_v2
+from google.iam.v1 import iam_policy_pb2
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -76,7 +77,10 @@ def scan_cloud_run_service(service_name: str, region: str, project_id: str):
         service = run_client.get_service(name=service_path)
         
         # Get IAM policy
-        policy = run_client.get_iam_policy(resource=service_path)
+        request = iam_policy_pb2.GetIamPolicyRequest(
+            resource=service_path
+        )
+        policy = run_client.get_iam_policy(request=request)
         
         # Analyze IAM bindings
         for binding in policy.bindings:
