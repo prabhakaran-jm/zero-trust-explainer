@@ -410,7 +410,19 @@ class AIService:
             response = self.model.generate_content(prompt)
             
             try:
-                ai_data = json.loads(response.text)
+                # Remove markdown code blocks if present
+                text_to_parse = response.text.replace("```json\n", "").replace("```\n", "").replace("```", "").strip()
+                ai_data = json.loads(text_to_parse)
+                
+                # Return the structured data directly
+                return {
+                    "ai_proposal": ai_data.get("summary", response.text),
+                    "terraform_code": ai_data.get("terraform_code", "# AI-generated fixes"),
+                    "implementation_steps": ai_data.get("implementation_steps", ["Manual review required"]),
+                    "testing_recommendations": ai_data.get("testing_recommendations", ["Test thoroughly"]),
+                    "ai_model": "gemini-pro",
+                    "ai_powered": True
+                }
             except json.JSONDecodeError:
                 ai_data = {
                     "summary": response.text,
@@ -418,15 +430,14 @@ class AIService:
                     "implementation_steps": ["Review the detailed summary"],
                     "testing_recommendations": ["Test all changes in development first"]
                 }
-            
-            return {
-                "ai_proposal": ai_data.get("summary", response.text),
-                "terraform_code": ai_data.get("terraform_code", "# AI-generated fixes"),
-                "implementation_steps": ai_data.get("implementation_steps", ["Manual review required"]),
-                "testing_recommendations": ai_data.get("testing_recommendations", ["Test thoroughly"]),
-                "ai_model": "gemini-pro",
-                "ai_powered": True
-            }
+                return {
+                    "ai_proposal": ai_data.get("summary", response.text),
+                    "terraform_code": ai_data.get("terraform_code", "# AI-generated fixes"),
+                    "implementation_steps": ai_data.get("implementation_steps", ["Manual review required"]),
+                    "testing_recommendations": ai_data.get("testing_recommendations", ["Test thoroughly"]),
+                    "ai_model": "gemini-pro",
+                    "ai_powered": True
+                }
             
         except Exception as e:
             logger.error(f"AI fix proposal generation failed: {e}")
