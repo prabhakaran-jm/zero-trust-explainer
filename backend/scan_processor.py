@@ -7,6 +7,7 @@ and writes security findings to BigQuery.
 import os
 import json
 import logging
+import traceback
 from datetime import datetime
 from google.cloud import pubsub_v1, bigquery, run_v2
 from google.iam.v1 import iam_policy_pb2
@@ -128,7 +129,9 @@ def scan_cloud_run_service(service_name: str, region: str, project_id: str):
         return findings
         
     except Exception as e:
+        import traceback
         logger.error(f"Error scanning service {service_name}: {e}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
         return findings
 
 
