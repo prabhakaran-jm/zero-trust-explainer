@@ -1,6 +1,6 @@
 import './JobCard.css'
 
-function JobCard({ job, isSelected, onSelect, onPropose }) {
+function JobCard({ job, isSelected, onSelect, onPropose, aiLoading }) {
   const getSeverityColor = (severity) => {
     const colors = {
       critical: '#dc3545',
@@ -69,8 +69,9 @@ function JobCard({ job, isSelected, onSelect, onPropose }) {
             e.stopPropagation()
             onPropose(job.job_id)
           }}
+          disabled={aiLoading?.propose}
         >
-          🤖 AI Propose
+          {aiLoading?.propose ? '⏳ Loading...' : '🤖 AI Propose'}
         </button>
       </div>
     </div>

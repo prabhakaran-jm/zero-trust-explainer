@@ -17,6 +17,7 @@ function App() {
   const [currentExplanation, setCurrentExplanation] = useState(null)
   const [showProposeModal, setShowProposeModal] = useState(false)
   const [proposeContent, setProposeContent] = useState(null)
+  const [aiLoading, setAiLoading] = useState({ explain: false, propose: false })
 
   useEffect(() => {
     loadJobs()
@@ -72,12 +73,33 @@ function App() {
       setLoading(true)
       setError(null)
       const result = await api.submitScan(serviceName, region, projectId)
-      alert(`Scan queued successfully! Job ID: ${result.job_id}`)
-      await loadJobs()
+      alert(`Scan queued successfully! Job ID: ${result.job_id.substring(0, 8)}...`)
+      
+      // Poll for new job to appear (scan processor runs asynchronously)
+      let attempts = 0
+      const maxAttempts = 20 // Check for up to 20 seconds
+      
+      const pollForJob = async () => {
+        const data = await api.listJobs()
+        const jobExists = data.jobs?.some(job => job.job_id === result.job_id)
+        
+        if (jobExists || attempts >= maxAttempts) {
+          await loadJobs()
+          setLoading(false)
+          if (attempts >= maxAttempts) {
+            setError('Scan is processing. Please refresh in a moment.')
+          }
+        } else {
+          attempts++
+          setTimeout(pollForJob, 1000) // Check every second
+        }
+      }
+      
+      // Start polling after a short delay to allow scan processor to run
+      setTimeout(pollForJob, 2000)
     } catch (err) {
       setError('Failed to submit scan: ' + err.message)
       console.error('Error submitting scan:', err)
-    } finally {
       setLoading(false)
     }
   }
@@ -92,7 +114,8 @@ function App() {
 
   const handleExplain = async (findingId) => {
     try {
-      setLoading(true)
+      setAiLoading(prev => ({ ...prev, explain: true }))
+      setError(null)
       const explanation = await api.explainFinding(findingId)
       setCurrentExplanation(explanation)
       setShowExplanation(true)
@@ -100,13 +123,13 @@ function App() {
       setError('Failed to get explanation: ' + err.message)
       console.error('Error getting explanation:', err)
     } finally {
-      setLoading(false)
+      setAiLoading(prev => ({ ...prev, explain: false }))
     }
   }
 
   const handlePropose = async (jobId) => {
     try {
-      setLoading(true)
+      setAiLoading(prev => ({ ...prev, propose: true }))
       setError(null)
       const result = await api.proposeFixes(jobId)
       
@@ -189,7 +212,7 @@ function App() {
       setError('Failed to trigger propose: ' + err.message)
       console.error('Error triggering propose:', err)
     } finally {
-      setLoading(false)
+      setAiLoading(prev => ({ ...prev, propose: false }))
     }
   }
 
@@ -241,6 +264,7 @@ function App() {
                 isSelected={selectedJobId === job.job_id}
                 onSelect={() => setSelectedJobId(job.job_id)}
                 onPropose={handlePropose}
+                aiLoading={aiLoading}
               />
             ))}
             {jobs.length === 0 && !loading && (
@@ -274,6 +298,7 @@ function App() {
               findings={findings} 
               onExplain={handleExplain}
               loading={loading}
+              aiLoading={aiLoading}
             />
           </section>
         )}
@@ -518,18 +543,31 @@ function App() {
                   {proposeContent.terraformCodeBlocks && (
                     <div className="terraform-code-blocks">
                       <h4>📝 Generated Terraform Code</h4>
-                      {Object.entries(proposeContent.terraformCodeBlocks).map(([key, codeBlock]) => (
-                        <div key={key} className="terraform-code-block">
-                          <h5>{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</h5>
-                          {typeof codeBlock === 'string' ? (
-                            <pre><code>{codeBlock}</code></pre>
-                          ) : codeBlock.code ? (
-                            <pre><code>{codeBlock.code}</code></pre>
-                          ) : (
-                            <pre><code>{JSON.stringify(codeBlock, null, 2)}</code></pre>
-                          )}
-                        </div>
-                      ))}
+                      {Object.entries(proposeContent.terraformCodeBlocks).map(([key, codeBlock]) => {
+                        let displayCode = ''
+                        let description = ''
+                        
+                        if (typeof codeBlock === 'string') {
+                          displayCode = codeBlock
+                        } else if (codeBlock && typeof codeBlock === 'object') {
+                          if (codeBlock.code) {
+                            displayCode = codeBlock.code
+                          } else if (codeBlock.terraform_code || codeBlock.terraform) {
+                            displayCode = codeBlock.terraform_code || codeBlock.terraform
+                          }
+                          if (codeBlock.description) {
+                            description = codeBlock.description
+                          }
+                        }
+                        
+                        return (
+                          <div key={key} className="terraform-code-block">
+                            <h5>{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</h5>
+                            {description && <p className="code-description">{description}</p>}
+                            {displayCode && <pre><code>{displayCode}</code></pre>}
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </div>

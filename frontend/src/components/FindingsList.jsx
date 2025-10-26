@@ -1,6 +1,6 @@
 import './FindingsList.css'
 
-function FindingsList({ findings, onExplain, loading }) {
+function FindingsList({ findings, onExplain, loading, aiLoading }) {
   const getSeverityColor = (severity) => {
     const colors = {
       critical: '#dc3545',
@@ -48,8 +48,9 @@ function FindingsList({ findings, onExplain, loading }) {
             <button 
               className="explain-btn ai-powered-btn"
               onClick={() => onExplain(finding.id)}
+              disabled={aiLoading?.explain}
             >
-              🤖 AI Explain
+              {aiLoading?.explain ? '⏳ Loading...' : '🤖 AI Explain'}
             </button>
           </div>
         </div>
