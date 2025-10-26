@@ -2,7 +2,7 @@
 ## AI-Powered Security Analysis for Google Cloud Run
 
 **Category:** AI Studio  
-**Live Demo:** https://zte-frontend-xxx.run.app  
+**Live Demo:** https://zte-frontend-459742478845.us-central1.run.app  
 **GitHub:** https://github.com/prabhakaran-jm/zero-trust-explainer
 
 ---
@@ -104,6 +104,12 @@ Zero-Trust Explainer leverages **Google AI Studio** and **Gemini Pro** to provid
 - **Error Handling**: Graceful degradation when AI is unavailable
 - **Response Parsing**: JSON extraction with markdown code block removal
 
+### AI Studio Prompts Documentation
+All AI Studio prompts used in the application are documented in the repository:
+- **Documentation**: `docs/AI_STUDIO_PROMPTS.md`
+- **Source Implementation**: `backend/main.py` (AIService class)
+- **Features**: Security explanations, scan summaries, Terraform code generation
+
 ---
 
 ## 📊 Demo Scenarios
@@ -138,7 +144,8 @@ Zero-Trust Explainer leverages **Google AI Studio** and **Gemini Pro** to provid
 
 ## 🎥 Live Demo
 
-**Frontend URL**: https://zte-frontend-xxx.run.app
+**Frontend URL**: https://zte-frontend-459742478845.us-central1.run.app  
+**Backend API**: https://zte-backend-api-459742478845.us-central1.run.app
 
 ### Demo Steps:
 1. **View Existing Scans**: Browse recent security scans with AI-powered insights
