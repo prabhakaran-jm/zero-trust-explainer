@@ -154,6 +154,25 @@ def write_findings_to_bigquery(job_id: str, service_name: str, findings: list):
         table_id = f"{PROJECT_ID}.{BQ_DATASET}.{BQ_TABLE}"
         table = bq_client.get_table(table_id)
         
+        # First, delete old findings for this service to prevent duplicates
+        delete_query = f"""
+        DELETE FROM `{table_id}`
+        WHERE resource_name = @resource_name
+        """
+        
+        delete_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("resource_name", "STRING", service_name),
+            ]
+        )
+        
+        logger.info(f"Deleting old findings for service {service_name}")
+        delete_job = bq_client.query(delete_query, job_config=delete_config)
+        delete_job.result()  # Wait for completion
+        deleted_count = delete_job.num_dml_affected_rows
+        logger.info(f"Deleted {deleted_count} old findings for {service_name}")
+        
+        # Now insert new findings
         rows_to_insert = []
         for finding in findings:
             row = {
@@ -173,7 +192,7 @@ def write_findings_to_bigquery(job_id: str, service_name: str, findings: list):
         if errors:
             logger.error(f"Errors inserting rows: {errors}")
         else:
-            logger.info(f"Inserted {len(rows_to_insert)} findings for {service_name}")
+            logger.info(f"Inserted {len(rows_to_insert)} fresh findings for {service_name}")
             
     except Exception as e:
         logger.error(f"Error writing findings to BigQuery: {e}")
