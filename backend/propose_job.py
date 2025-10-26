@@ -181,7 +181,9 @@ def generate_ai_proposals(findings):
         response = gemini_model.generate_content(prompt)
         
         try:
-            ai_data = json.loads(response.text)
+            # Remove markdown code blocks if present
+            text_to_parse = response.text.replace("```json\n", "").replace("```\n", "").replace("```", "").strip()
+            ai_data = json.loads(text_to_parse)
         except json.JSONDecodeError:
             ai_data = {
                 "summary": response.text,
