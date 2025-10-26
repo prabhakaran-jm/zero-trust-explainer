@@ -137,6 +137,66 @@ resource "google_cloud_run_v2_service_iam_member" "frontend_public_access" {
   member   = "allUsers"
 }
 
+# Cloud Run Job for scan processing
+resource "google_cloud_run_v2_job" "scan_processor" {
+  name     = "zte-scan-processor"
+  location = var.region
+
+  template {
+    template {
+      service_account = google_service_account.zte_service_account.email
+
+      containers {
+        image = var.backend_image
+
+        command = ["python"]
+        args    = ["scan_processor.py"]
+
+        env {
+          name  = "GCP_PROJECT_ID"
+          value = var.project_id
+        }
+
+        env {
+          name  = "PUBSUB_SUBSCRIPTION"
+          value = google_pubsub_subscription.scan_requests_sub.name
+        }
+
+        env {
+          name  = "BQ_DATASET"
+          value = google_bigquery_dataset.zte_dataset.dataset_id
+        }
+
+        env {
+          name  = "BQ_TABLE"
+          value = google_bigquery_table.findings_table.table_id
+        }
+
+        env {
+          name  = "REGION"
+          value = var.region
+        }
+
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "512Mi"
+          }
+        }
+      }
+
+      max_retries = 3
+      timeout     = "600s"
+    }
+  }
+
+  depends_on = [
+    google_project_service.required_apis,
+    google_bigquery_table.findings_table,
+    google_pubsub_subscription.scan_requests_sub
+  ]
+}
+
 # Cloud Run Job for propose functionality
 resource "google_cloud_run_v2_job" "propose_job" {
   name     = "zte-propose-job"

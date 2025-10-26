@@ -48,6 +48,18 @@ resource "google_project_iam_member" "zte_run_admin" {
   member  = "serviceAccount:${google_service_account.zte_service_account.email}"
 }
 
+resource "google_project_iam_member" "zte_pubsub_subscriber" {
+  project = var.project_id
+  role    = "roles/pubsub.subscriber"
+  member  = "serviceAccount:${google_service_account.zte_service_account.email}"
+}
+
+resource "google_project_iam_member" "zte_service_account_user" {
+  project = var.project_id
+  role    = "roles/iam.serviceAccountUser"
+  member  = "serviceAccount:${google_service_account.zte_service_account.email}"
+}
+
 # Allow service account to sign URLs (for GCS signed URLs)
 resource "google_service_account_iam_member" "zte_token_creator" {
   service_account_id = google_service_account.zte_service_account.name

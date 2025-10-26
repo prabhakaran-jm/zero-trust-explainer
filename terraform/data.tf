@@ -84,3 +84,22 @@ resource "google_pubsub_topic" "scan_requests" {
 
   depends_on = [google_project_service.required_apis]
 }
+
+# Pub/Sub Subscription for scan processor
+resource "google_pubsub_subscription" "scan_requests_sub" {
+  name  = "zte-scan-requests-sub"
+  topic = google_pubsub_topic.scan_requests.name
+
+  ack_deadline_seconds = 60
+
+  expiration_policy {
+    ttl = "604800s"  # 7 days to match message retention
+  }
+
+  retry_policy {
+    minimum_backoff = "10s"
+    maximum_backoff = "600s"
+  }
+
+  depends_on = [google_pubsub_topic.scan_requests]
+}
