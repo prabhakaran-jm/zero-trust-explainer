@@ -409,10 +409,14 @@ class AIService:
             
             response = self.model.generate_content(prompt)
             
+            logger.info(f"Gemini response: {response.text[:200]}...")  # Log first 200 chars
+            
             try:
                 # Remove markdown code blocks if present
-                text_to_parse = response.text.replace("```json\n", "").replace("```\n", "").replace("```", "").strip()
+                text_to_parse = response.text.replace("```json\n", "").replace("```json\n", "").replace("```\n", "").replace("```", "").strip()
                 ai_data = json.loads(text_to_parse)
+                
+                logger.info(f"Successfully parsed AI response with keys: {list(ai_data.keys())}")
                 
                 # Return the structured data directly
                 return {
@@ -423,7 +427,11 @@ class AIService:
                     "ai_model": "gemini-pro",
                     "ai_powered": True
                 }
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as json_error:
+                logger.error(f"JSON decode error: {json_error}")
+                logger.error(f"Response text length: {len(response.text)}")
+                logger.error(f"Response text (first 500 chars): {response.text[:500]}")
+                
                 ai_data = {
                     "summary": response.text,
                     "terraform_code": "# Generated fixes - see summary above",
