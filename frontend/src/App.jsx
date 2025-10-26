@@ -472,7 +472,9 @@ function App() {
                       
                       {proposeContent.summary.raw && (
                         <div className="raw-content">
-                          <pre>{proposeContent.summary.raw}</pre>
+                          <p style={{ whiteSpace: 'pre-line', lineHeight: '1.6' }}>
+                            {proposeContent.summary.raw}
+                          </p>
                         </div>
                       )}
                     </div>

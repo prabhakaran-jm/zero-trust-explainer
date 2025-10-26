@@ -722,6 +722,30 @@
   margin-right: 0.5rem;
 }
 
+/* AI Proposal Raw Content Styling */
+.raw-content {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  margin: 1rem 0;
+}
+
+.raw-content p {
+  line-height: 1.8;
+  color: #495057;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.raw-content pre {
+  background: white;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  overflow-x: auto;
+  font-family: 'Courier New', monospace;
+}
+
 @media (max-width: 768px) {
   .propose-modal {
     width: 95vw;
