@@ -11,6 +11,7 @@ import traceback
 from datetime import datetime
 from google.cloud import pubsub_v1, bigquery, run_v2
 from google.iam.v1 import iam_policy_pb2
+from google.iam.v1.policy_pb2 import Binding
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -32,10 +33,14 @@ bq_client = bigquery.Client()
 run_client = run_v2.ServicesClient()
 
 
-def analyze_iam_binding(resource_name: str, binding: dict, findings: list):
-    """Analyze a single IAM binding for security issues."""
-    role = binding.get("role", "")
-    members = binding.get("members", [])
+def analyze_iam_binding(resource_name: str, binding, findings: list):
+    """Analyze a single IAM binding for security issues.
+    
+    Args:
+        binding: A google.iam.v1.policy_pb2.Binding protobuf object
+    """
+    role = binding.role
+    members = list(binding.members)
     
     # Critical: Check for unauthenticated access
     if "allUsers" in members or "allAuthenticatedUsers" in members:
