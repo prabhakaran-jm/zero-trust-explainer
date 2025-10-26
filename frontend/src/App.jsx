@@ -77,26 +77,27 @@ function App() {
       
       // Poll for new job to appear (scan processor runs asynchronously)
       let attempts = 0
-      const maxAttempts = 20 // Check for up to 20 seconds
+      const maxAttempts = 60 // Check for up to 60 seconds (scan can take time)
       
       const pollForJob = async () => {
         const data = await api.listJobs()
         const jobExists = data.jobs?.some(job => job.job_id === result.job_id)
         
-        if (jobExists || attempts >= maxAttempts) {
+        if (jobExists) {
           await loadJobs()
           setLoading(false)
-          if (attempts >= maxAttempts) {
-            setError('Scan is processing. Please refresh in a moment.')
-          }
+        } else if (attempts >= maxAttempts) {
+          await loadJobs() // Load anyway to show any jobs
+          setLoading(false)
+          setError('Scan is taking longer than expected. Please refresh if it does not appear shortly.')
         } else {
           attempts++
           setTimeout(pollForJob, 1000) // Check every second
         }
       }
       
-      // Start polling after a short delay to allow scan processor to run
-      setTimeout(pollForJob, 2000)
+      // Start polling immediately
+      setTimeout(pollForJob, 1000)
     } catch (err) {
       setError('Failed to submit scan: ' + err.message)
       console.error('Error submitting scan:', err)
@@ -147,62 +148,51 @@ function App() {
       }
       
       if (result.ai_powered && result.ai_proposals) {
-        // Parse the AI proposal JSON if it's a string
-        let aiProposal = result.ai_proposals.ai_proposal
-        if (typeof aiProposal === 'string') {
-          try {
-            // Remove markdown code blocks if present
-            aiProposal = aiProposal.replace(/```json\n?/g, '').replace(/```\n?/g, '')
-            const parsedProposal = JSON.parse(aiProposal)
-            
-            // Store parsed content for modal display
-            content.summary = parsedProposal.summary
-            content.implementationSteps = parsedProposal.implementation_steps
-            content.testingRecommendations = parsedProposal.testing_recommendations
-            
-            // Process Terraform code - handle both simple string and complex object structure
-            if (parsedProposal.terraform_code) {
-              if (typeof parsedProposal.terraform_code === 'string') {
-                // Clean up escape sequences in simple string
-                content.terraformCode = parsedProposal.terraform_code
-                  .replace(/\\n/g, '\n')
-                  .replace(/\\t/g, '\t')
-                  .replace(/\\"/g, '"')
-              } else if (typeof parsedProposal.terraform_code === 'object') {
-                // Handle complex terraform_code object with multiple code blocks
-                const cleanedBlocks = {}
-                Object.entries(parsedProposal.terraform_code).forEach(([key, codeBlock]) => {
-                  if (typeof codeBlock === 'string') {
-                    cleanedBlocks[key] = codeBlock
-                      .replace(/\\n/g, '\n')
-                      .replace(/\\t/g, '\t')
-                      .replace(/\\"/g, '"')
-                  } else if (codeBlock && typeof codeBlock === 'object' && codeBlock.code) {
-                    cleanedBlocks[key] = {
-                      ...codeBlock,
-                      code: codeBlock.code
-                        .replace(/\\n/g, '\n')
-                        .replace(/\\t/g, '\t')
-                        .replace(/\\"/g, '"')
-                    }
-                  } else {
-                    cleanedBlocks[key] = codeBlock
-                  }
-                })
-                content.terraformCodeBlocks = cleanedBlocks
-              }
+        // Use the direct fields from ai_proposals
+        const proposals = result.ai_proposals
+        
+        // Handle summary
+        if (proposals.ai_proposal) {
+          if (typeof proposals.ai_proposal === 'string') {
+            try {
+              // Try to parse if it's JSON
+              const parsed = JSON.parse(proposals.ai_proposal)
+              content.summary = parsed
+            } catch {
+              // If not JSON, use as raw text
+              content.summary = { raw: proposals.ai_proposal }
             }
-            
-          } catch (parseError) {
-            // If parsing fails, store raw content
-            content.summary = { raw: aiProposal }
+          } else {
+            content.summary = proposals.ai_proposal
           }
-        } else {
-          content.summary = { raw: aiProposal }
         }
         
-        if (result.ai_proposals.terraform_code && result.ai_proposals.terraform_code !== "# Generated fixes - see summary above") {
-          content.terraformCode = result.ai_proposals.terraform_code
+        // Handle implementation steps
+        if (proposals.implementation_steps) {
+          content.implementationSteps = proposals.implementation_steps
+        }
+        
+        // Handle testing recommendations
+        if (proposals.testing_recommendations) {
+          content.testingRecommendations = proposals.testing_recommendations
+        }
+        
+        // Handle Terraform code
+        if (proposals.terraform_code) {
+          if (typeof proposals.terraform_code === 'string') {
+            content.terraformCode = proposals.terraform_code
+          } else if (typeof proposals.terraform_code === 'object') {
+            // Handle complex terraform_code object
+            const cleanedBlocks = {}
+            Object.entries(proposals.terraform_code).forEach(([key, codeBlock]) => {
+              if (typeof codeBlock === 'string') {
+                cleanedBlocks[key] = codeBlock
+              } else if (codeBlock && typeof codeBlock === 'object') {
+                cleanedBlocks[key] = codeBlock
+              }
+            })
+            content.terraformCodeBlocks = cleanedBlocks
+          }
         }
       }
       
