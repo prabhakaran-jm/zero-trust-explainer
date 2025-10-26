@@ -17,7 +17,7 @@ function App() {
   const [currentExplanation, setCurrentExplanation] = useState(null)
   const [showProposeModal, setShowProposeModal] = useState(false)
   const [proposeContent, setProposeContent] = useState(null)
-  const [aiLoading, setAiLoading] = useState({ explain: false, propose: false })
+  const [aiLoading, setAiLoading] = useState({ explain: null, propose: null })
 
   useEffect(() => {
     loadJobs()
@@ -115,7 +115,7 @@ function App() {
 
   const handleExplain = async (findingId) => {
     try {
-      setAiLoading(prev => ({ ...prev, explain: true }))
+      setAiLoading(prev => ({ ...prev, explain: findingId }))
       setError(null)
       const explanation = await api.explainFinding(findingId)
       setCurrentExplanation(explanation)
@@ -124,13 +124,13 @@ function App() {
       setError('Failed to get explanation: ' + err.message)
       console.error('Error getting explanation:', err)
     } finally {
-      setAiLoading(prev => ({ ...prev, explain: false }))
+      setAiLoading(prev => ({ ...prev, explain: null }))
     }
   }
 
   const handlePropose = async (jobId) => {
     try {
-      setAiLoading(prev => ({ ...prev, propose: true }))
+      setAiLoading(prev => ({ ...prev, propose: jobId }))
       setError(null)
       const result = await api.proposeFixes(jobId)
       
@@ -151,28 +151,23 @@ function App() {
         // Use the direct fields from ai_proposals
         const proposals = result.ai_proposals
         
-        // Handle summary
+        console.log('AI Proposals:', proposals) // Debug logging
+        
+        // Handle summary - it can be a string or object
         if (proposals.ai_proposal) {
           if (typeof proposals.ai_proposal === 'string') {
-            try {
-              // Try to parse if it's JSON
-              const parsed = JSON.parse(proposals.ai_proposal)
-              content.summary = parsed
-            } catch {
-              // If not JSON, use as raw text
-              content.summary = { raw: proposals.ai_proposal }
-            }
+            content.summary = { raw: proposals.ai_proposal }
           } else {
             content.summary = proposals.ai_proposal
           }
         }
         
-        // Handle implementation steps
+        // Handle implementation steps - expect array of strings
         if (proposals.implementation_steps) {
           content.implementationSteps = proposals.implementation_steps
         }
         
-        // Handle testing recommendations
+        // Handle testing recommendations - expect array of strings
         if (proposals.testing_recommendations) {
           content.testingRecommendations = proposals.testing_recommendations
         }
@@ -182,16 +177,7 @@ function App() {
           if (typeof proposals.terraform_code === 'string') {
             content.terraformCode = proposals.terraform_code
           } else if (typeof proposals.terraform_code === 'object') {
-            // Handle complex terraform_code object
-            const cleanedBlocks = {}
-            Object.entries(proposals.terraform_code).forEach(([key, codeBlock]) => {
-              if (typeof codeBlock === 'string') {
-                cleanedBlocks[key] = codeBlock
-              } else if (codeBlock && typeof codeBlock === 'object') {
-                cleanedBlocks[key] = codeBlock
-              }
-            })
-            content.terraformCodeBlocks = cleanedBlocks
+            content.terraformCodeBlocks = proposals.terraform_code
           }
         }
       }
@@ -202,7 +188,7 @@ function App() {
       setError('Failed to trigger propose: ' + err.message)
       console.error('Error triggering propose:', err)
     } finally {
-      setAiLoading(prev => ({ ...prev, propose: false }))
+      setAiLoading(prev => ({ ...prev, propose: null }))
     }
   }
 
@@ -498,7 +484,13 @@ function App() {
                   {proposeContent.implementationSteps && (
                     <div className="implementation-steps">
                       <h4>📋 Implementation Steps</h4>
-                      {proposeContent.implementationSteps.critical && (
+                      {Array.isArray(proposeContent.implementationSteps) ? (
+                        <ol>
+                          {proposeContent.implementationSteps.map((step, index) => (
+                            <li key={index}>{step}</li>
+                          ))}
+                        </ol>
+                      ) : proposeContent.implementationSteps.critical && (
                         <div className="critical-steps">
                           <h5>🔴 Critical Fixes</h5>
                           <ol>
@@ -514,7 +506,13 @@ function App() {
                   {proposeContent.testingRecommendations && (
                     <div className="testing-recommendations">
                       <h4>🧪 Testing Recommendations</h4>
-                      {proposeContent.testingRecommendations.critical && (
+                      {Array.isArray(proposeContent.testingRecommendations) ? (
+                        <ul>
+                          {proposeContent.testingRecommendations.map((rec, index) => (
+                            <li key={index}>{rec}</li>
+                          ))}
+                        </ul>
+                      ) : proposeContent.testingRecommendations.critical && (
                         <div className="critical-testing">
                           <h5>🔴 Critical Testing</h5>
                           <p>{proposeContent.testingRecommendations.critical}</p>

@@ -69,9 +69,9 @@ function JobCard({ job, isSelected, onSelect, onPropose, aiLoading }) {
             e.stopPropagation()
             onPropose(job.job_id)
           }}
-          disabled={aiLoading?.propose}
+          disabled={aiLoading?.propose === job.job_id}
         >
-          {aiLoading?.propose ? '⏳ Loading...' : '🤖 AI Propose'}
+          {aiLoading?.propose === job.job_id ? '⏳ Loading...' : '🤖 AI Propose'}
         </button>
       </div>
     </div>

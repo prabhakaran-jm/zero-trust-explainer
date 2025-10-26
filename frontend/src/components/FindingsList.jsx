@@ -48,9 +48,9 @@ function FindingsList({ findings, onExplain, loading, aiLoading }) {
             <button 
               className="explain-btn ai-powered-btn"
               onClick={() => onExplain(finding.id)}
-              disabled={aiLoading?.explain}
+              disabled={aiLoading?.explain === finding.id}
             >
-              {aiLoading?.explain ? '⏳ Loading...' : '🤖 AI Explain'}
+              {aiLoading?.explain === finding.id ? '⏳ Loading...' : '🤖 AI Explain'}
             </button>
           </div>
         </div>
