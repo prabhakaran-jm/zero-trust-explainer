@@ -127,6 +127,9 @@ class Finding(BaseModel):
     resource_name: str
     issue_description: str
     recommendation: str
+    blast_radius: Optional[str] = None
+    affected_resources: Optional[str] = None
+    risk_score: Optional[int] = None
     created_at: str
 
 
@@ -184,7 +187,9 @@ class AIService:
             
             # Try to parse JSON response, fallback to text
             try:
-                ai_data = json.loads(response.text)
+                # Remove markdown code blocks if present
+                text_to_parse = response.text.replace("```json\n", "").replace("```\n", "").replace("```", "").strip()
+                ai_data = json.loads(text_to_parse)
             except json.JSONDecodeError as e:
                 logger.warning(f"JSON parsing failed: {e}, using text response")
                 ai_data = {
@@ -193,11 +198,16 @@ class AIService:
                     "risk_assessment": "Review the detailed explanation"
                 }
             
+            # Calculate priority score from severity if risk_score not available
+            priority_score = ai_data.get("priority_score", finding.risk_score if finding.risk_score else {
+                "CRITICAL": 95, "HIGH": 75, "MEDIUM": 50, "LOW": 25
+            }.get(finding.severity, 50))
+            
             return {
                 "ai_explanation": ai_data.get("explanation", response.text),
                 "blast_radius": ai_data.get("blast_radius", "Analysis in progress"),
                 "risk_assessment": ai_data.get("risk_assessment", "Manual review recommended"),
-                "priority_score": ai_data.get("priority_score", finding.risk_score),
+                "priority_score": priority_score,
                 "business_impact": ai_data.get("business_impact", "Medium"),
                 "remediation_urgency": ai_data.get("remediation_urgency", "Medium"),
                 "attack_vector": ai_data.get("attack_vector", "Manual analysis required"),
@@ -249,11 +259,16 @@ class AIService:
         blast_radius = blast_radius_explanations.get(severity, "Impact assessment requires manual review.")
         risk_assessment = risk_assessments.get(severity, "Risk level requires manual assessment.")
         
+        # Calculate priority score from severity if risk_score not available
+        priority_score = finding.risk_score if finding.risk_score else {
+            "CRITICAL": 95, "HIGH": 75, "MEDIUM": 50, "LOW": 25
+        }.get(severity, 50)
+        
         return {
             "ai_explanation": explanation,
             "blast_radius": blast_radius,
             "risk_assessment": risk_assessment,
-            "priority_score": finding.risk_score,
+            "priority_score": priority_score,
             "business_impact": "High" if severity in ["CRITICAL", "HIGH"] else "Medium" if severity == "MEDIUM" else "Low",
             "remediation_urgency": "Immediate" if severity == "CRITICAL" else "High" if severity == "HIGH" else "Medium" if severity == "MEDIUM" else "Low",
             "attack_vector": "Manual analysis required",
@@ -631,7 +646,7 @@ async def explain_finding(finding_id: str):
         # Generate AI-powered explanation
         ai_analysis = ai_service.generate_explanation(finding)
         
-        # Build comprehensive explanation
+        # Build comprehensive explanation with AI analysis
         explanation = {
             "id": row.id,
             "job_id": row.job_id,
@@ -640,13 +655,14 @@ async def explain_finding(finding_id: str):
             "resource_name": row.resource_name,
             "issue_description": row.issue_description,
             "recommendation": row.recommendation,
-            "blast_radius": {
-                "description": ai_analysis.get("blast_radius", row.blast_radius if hasattr(row, 'blast_radius') else "Limited to service scope"),
-                "affected_resources": row.affected_resources.split(", ") if hasattr(row, 'affected_resources') and row.affected_resources else [],
-                "risk_score": row.risk_score if hasattr(row, 'risk_score') else 0
-            },
-            "explanation": ai_analysis.get("ai_explanation", f"This {row.severity} severity issue affects {row.resource_name}. {row.issue_description} To mitigate, {row.recommendation}"),
+            "blast_radius": ai_analysis.get("blast_radius", "Limited to service scope"),
+            "ai_explanation": ai_analysis.get("ai_explanation", f"This {row.severity} severity issue affects {row.resource_name}. {row.issue_description} To mitigate, {row.recommendation}"),
             "risk_assessment": ai_analysis.get("risk_assessment", "Manual review recommended"),
+            "priority_score": ai_analysis.get("priority_score"),
+            "business_impact": ai_analysis.get("business_impact"),
+            "remediation_urgency": ai_analysis.get("remediation_urgency"),
+            "attack_vector": ai_analysis.get("attack_vector"),
+            "compliance_impact": ai_analysis.get("compliance_impact"),
             "ai_powered": ai_analysis.get("ai_powered", False),
             "ai_model": ai_analysis.get("ai_model", None),
             "created_at": row.created_at.isoformat() if row.created_at else None

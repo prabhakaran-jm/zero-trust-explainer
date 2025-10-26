@@ -307,43 +307,97 @@ function App() {
                   <span className="resource-name">{currentExplanation.resource_name}</span>
                 </div>
                 
-                <div className="ai-explanation">
-                  <h4>🤖 AI-Powered Explanation</h4>
-                  <p>{currentExplanation.explanation}</p>
-                  
-                  {currentExplanation.ai_powered && (
-                    <div className="ai-badge">
-                      <span>Powered by {currentExplanation.ai_model}</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="blast-radius">
-                  <h4>💥 Blast Radius Analysis</h4>
-                  <p>{currentExplanation.blast_radius.description}</p>
-                  {currentExplanation.blast_radius.affected_resources?.length > 0 && (
-                    <div className="affected-resources">
-                      <strong>Affected Resources:</strong>
-                      <ul>
-                        {currentExplanation.blast_radius.affected_resources.map((resource, index) => (
-                          <li key={index}>{resource}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-                
-                {currentExplanation.risk_assessment && (
-                  <div className="risk-assessment">
-                    <h4>⚠️ Risk Assessment</h4>
-                    <p>{currentExplanation.risk_assessment}</p>
+                {/* AI-Powered Explanation Section */}
+                {(currentExplanation.ai_explanation || currentExplanation.explanation) && (
+                  <div className="ai-explanation-section">
+                    <h4>🤖 AI-Powered Explanation</h4>
+                    <p className="ai-explanation-text">{currentExplanation.ai_explanation || currentExplanation.explanation}</p>
+                    
+                    {currentExplanation.ai_powered && (
+                      <div className="ai-badge">
+                        <span>Powered by {currentExplanation.ai_model || 'AI'}</span>
+                      </div>
+                    )}
                   </div>
                 )}
                 
-                <div className="recommendation">
-                  <h4>💡 Recommendation</h4>
-                  <p>{currentExplanation.recommendation}</p>
-                </div>
+                {/* Blast Radius Analysis */}
+                {currentExplanation.blast_radius && (
+                  <div className="explanation-section blast-radius">
+                    <h4>💥 Blast Radius Analysis</h4>
+                    {typeof currentExplanation.blast_radius === 'string' ? (
+                      <p>{currentExplanation.blast_radius}</p>
+                    ) : (
+                      <>
+                        <p>{currentExplanation.blast_radius.description || 'See explanation above'}</p>
+                        {currentExplanation.blast_radius.affected_resources && (
+                          <div className="affected-resources">
+                            <strong>Affected Resources:</strong>
+                            <ul>
+                              {Array.isArray(currentExplanation.blast_radius.affected_resources) ? (
+                                currentExplanation.blast_radius.affected_resources.map((resource, index) => (
+                                  <li key={index}>{resource}</li>
+                                ))
+                              ) : (
+                                <li>{currentExplanation.blast_radius.affected_resources}</li>
+                              )}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+                
+                {/* Risk Assessment */}
+                {currentExplanation.risk_assessment && (
+                  <div className="explanation-section risk-assessment">
+                    <h4>⚠️ Risk Assessment</h4>
+                    <p>{currentExplanation.risk_assessment}</p>
+                    
+                    {currentExplanation.priority_score !== undefined && (
+                      <div className="priority-info">
+                        <strong>Priority Score:</strong> {currentExplanation.priority_score}/100
+                      </div>
+                    )}
+                    
+                    {currentExplanation.business_impact && (
+                      <div className="business-impact">
+                        <strong>Business Impact:</strong> {currentExplanation.business_impact}
+                      </div>
+                    )}
+                    
+                    {currentExplanation.remediation_urgency && (
+                      <div className="remediation-urgency">
+                        <strong>Remediation Urgency:</strong> {currentExplanation.remediation_urgency}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Attack Vector */}
+                {currentExplanation.attack_vector && (
+                  <div className="explanation-section attack-vector">
+                    <h4>🎯 Attack Vector</h4>
+                    <p>{currentExplanation.attack_vector}</p>
+                  </div>
+                )}
+                
+                {/* Compliance Impact */}
+                {currentExplanation.compliance_impact && (
+                  <div className="explanation-section compliance-impact">
+                    <h4>📋 Compliance Impact</h4>
+                    <p>{currentExplanation.compliance_impact}</p>
+                  </div>
+                )}
+                
+                {/* Recommendation */}
+                {currentExplanation.recommendation && (
+                  <div className="explanation-section recommendation">
+                    <h4>💡 Recommendation</h4>
+                    <p>{currentExplanation.recommendation}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

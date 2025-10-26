@@ -648,6 +648,80 @@
   background: #5a6fd8;
 }
 
+/* Enhanced AI Explanation Styling */
+.ai-explanation-section {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+  margin-bottom: 1rem;
+}
+
+.ai-explanation-text {
+  line-height: 1.8;
+  color: #333;
+  font-size: 1rem;
+}
+
+.explanation-section {
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border-left: 4px solid #ddd;
+  background: #f9f9f9;
+}
+
+.explanation-section h4 {
+  margin: 0 0 0.75rem 0;
+  color: #333;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.explanation-section.blast-radius {
+  background: #fff3cd;
+  border-left-color: #ffc107;
+}
+
+.explanation-section.risk-assessment {
+  background: #f8d7da;
+  border-left-color: #dc3545;
+}
+
+.explanation-section.attack-vector {
+  background: #d1ecf1;
+  border-left-color: #17a2b8;
+}
+
+.explanation-section.compliance-impact {
+  background: #d4edda;
+  border-left-color: #28a745;
+}
+
+.explanation-section.recommendation {
+  background: #e2e3e5;
+  border-left-color: #6c757d;
+}
+
+.priority-info,
+.business-impact,
+.remediation-urgency {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.priority-info strong,
+.business-impact strong,
+.remediation-urgency strong {
+  color: #667eea;
+  margin-right: 0.5rem;
+}
+
 @media (max-width: 768px) {
   .propose-modal {
     width: 95vw;
@@ -667,5 +741,9 @@
   .medium-section,
   .low-section {
     padding: 0.75rem;
+  }
+  
+  .explanation-section {
+    padding: 1rem;
   }
 }
