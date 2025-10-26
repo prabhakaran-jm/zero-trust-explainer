@@ -154,23 +154,23 @@ def write_findings_to_bigquery(job_id: str, service_name: str, findings: list):
         table_id = f"{PROJECT_ID}.{BQ_DATASET}.{BQ_TABLE}"
         table = bq_client.get_table(table_id)
         
-        # First, delete old findings for THIS job_id to prevent duplicates when rescanning
+        # First, delete old findings for this resource_name to prevent duplicates when rescanning
         delete_query = f"""
         DELETE FROM `{table_id}`
-        WHERE job_id = @job_id
+        WHERE resource_name = @resource_name
         """
         
         delete_config = bigquery.QueryJobConfig(
             query_parameters=[
-                bigquery.ScalarQueryParameter("job_id", "STRING", job_id),
+                bigquery.ScalarQueryParameter("resource_name", "STRING", service_name),
             ]
         )
         
-        logger.info(f"Deleting old findings for job_id={job_id}")
+        logger.info(f"Deleting old findings for resource_name={service_name}")
         delete_job = bq_client.query(delete_query, job_config=delete_config)
         delete_job.result()  # Wait for completion
         deleted_count = delete_job.num_dml_affected_rows
-        logger.info(f"Deleted {deleted_count} old findings for job_id={job_id}")
+        logger.info(f"Deleted {deleted_count} old findings for resource_name={service_name}")
         
         rows_to_insert = []
         for finding in findings:
