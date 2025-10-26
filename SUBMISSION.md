@@ -3,7 +3,7 @@
 
 **Category:** AI Studio  
 **Live Demo:** https://zte-frontend-xxx.run.app  
-**GitHub:** https://github.com/your-username/zero-trust-explainer
+**GitHub:** https://github.com/prabhakaran-jm/zero-trust-explainer
 
 ---
 
