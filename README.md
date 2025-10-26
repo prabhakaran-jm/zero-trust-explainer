@@ -249,23 +249,38 @@ The findings table includes:
 ```
 zero-trust-explainer/
 ├── backend/
-│   ├── main.py           # FastAPI application
-│   ├── requirements.txt  # Python dependencies
-│   └── Dockerfile        # Backend container
+│   ├── main.py            # FastAPI application
+│   ├── propose_job.py     # Cloud Run Job for AI proposals
+│   ├── scan_processor.py  # Cloud Run scanning logic
+│   ├── requirements.txt    # Python dependencies
+│   └── Dockerfile         # Backend container
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx       # Main application
-│   │   ├── components/   # React components
-│   │   └── services/     # API service
-│   ├── package.json      # Node dependencies
-│   ├── vite.config.js    # Vite configuration
-│   ├── Dockerfile        # Frontend container
-│   └── nginx.conf        # Nginx configuration
+│   │   ├── App.jsx        # Main application
+│   │   ├── components/    # React components
+│   │   └── services/      # API service
+│   ├── package.json       # Node dependencies
+│   ├── vite.config.js     # Vite configuration
+│   ├── Dockerfile         # Frontend container
+│   └── nginx.conf         # Nginx configuration
 ├── terraform/
-│   └── main.tf           # Infrastructure as code
-└── .github/
-    └── workflows/
-        └── deploy.yml    # CI/CD pipeline
+│   ├── apis.tf            # API enablement
+│   ├── cloudrun.tf        # Cloud Run services and jobs
+│   ├── data.tf            # BigQuery and Pub/Sub
+│   ├── iam.tf             # IAM roles and permissions
+│   ├── outputs.tf         # Output variables
+│   ├── providers.tf       # Terraform providers
+│   └── storage.tf         # Artifact Registry and GCS
+├── docs/
+│   ├── API.md             # API reference
+│   ├── ARCHITECTURE.md    # System architecture
+│   ├── DEPLOYMENT.md      # Deployment guide
+│   ├── SCANNING_GUIDE.md  # How to scan services
+│   └── VULNERABLE_SERVICE_GUIDE.md  # Test service creation
+└── scripts/
+    ├── create-test-service.sh   # Create vulnerable service (Unix)
+    ├── create-test-service.ps1  # Create vulnerable service (Windows)
+    └── verify-structure.sh      # Verify project structure
 ```
 
 ### Testing Locally
