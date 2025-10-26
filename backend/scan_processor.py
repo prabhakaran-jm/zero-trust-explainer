@@ -130,8 +130,13 @@ def scan_cloud_run_service(service_name: str, region: str, project_id: str):
         
     except Exception as e:
         import traceback
-        logger.error(f"Error scanning service {service_name}: {e}")
-        logger.error(f"Full traceback: {traceback.format_exc()}")
+        tb = traceback.format_exc()
+        logger.error(f"Error scanning service {service_name}: {str(e)}")
+        logger.error(f"Traceback: {tb}")
+        # Also log each line separately for better visibility
+        for line in tb.split('\n'):
+            if line.strip():
+                logger.error(f"TB: {line}")
         return findings
 
 
