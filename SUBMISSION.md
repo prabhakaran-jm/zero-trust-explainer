@@ -63,7 +63,7 @@ Zero-Trust Explainer leverages **Google AI Studio** and **Gemini Pro** to provid
 ## 🏗️ Technical Architecture
 
 ### Backend (FastAPI + Gemini Pro)
-- **AI Service Integration**: Google AI Studio with Gemini 2.0 Flash
+- **AI Service Integration**: Google AI Studio with Gemini Pro (automatic model selection)
 - **RESTful API**: Comprehensive endpoints for all operations
 - **Cloud Run Jobs**: Asynchronous AI report generation
 - **BigQuery Integration**: Scalable data warehouse for findings
@@ -99,10 +99,10 @@ Zero-Trust Explainer leverages **Google AI Studio** and **Gemini Pro** to provid
 - `POST /propose/{job_id}` - AI-generated Terraform remediation code
 
 ### Model Configuration
-- **Primary Model**: `gemini-2.0-flash` for optimal performance
+- **Auto Model Selection**: Tries gemini-2.5-flash, gemini-2.5-pro, gemini-2.0-flash, etc.
 - **Fallback Logic**: Robust model initialization with multiple options
 - **Error Handling**: Graceful degradation when AI is unavailable
-- **Response Parsing**: JSON extraction with fallback to text
+- **Response Parsing**: JSON extraction with markdown code block removal
 
 ---
 
