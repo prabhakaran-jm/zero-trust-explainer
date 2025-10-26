@@ -490,16 +490,23 @@ function App() {
                             <li key={index}>{step}</li>
                           ))}
                         </ol>
-                      ) : proposeContent.implementationSteps.critical && (
-                        <div className="critical-steps">
-                          <h5>🔴 Critical Fixes</h5>
-                          <ol>
-                            {proposeContent.implementationSteps.critical.map((step, index) => (
-                              <li key={index}>{step}</li>
-                            ))}
-                          </ol>
-                        </div>
-                      )}
+                      ) : typeof proposeContent.implementationSteps === 'object' ? (
+                        // Handle object structure with keys like "VPC Connector", "Authentication", etc.
+                        Object.entries(proposeContent.implementationSteps).map(([category, steps]) => (
+                          <div key={category} className="implementation-category">
+                            <h5>{category}</h5>
+                            {Array.isArray(steps) ? (
+                              <ol>
+                                {steps.map((step, index) => (
+                                  <li key={index}>{step}</li>
+                                ))}
+                              </ol>
+                            ) : (
+                              <p>{steps}</p>
+                            )}
+                          </div>
+                        ))
+                      ) : null}
                     </div>
                   )}
                   
@@ -512,12 +519,23 @@ function App() {
                             <li key={index}>{rec}</li>
                           ))}
                         </ul>
-                      ) : proposeContent.testingRecommendations.critical && (
-                        <div className="critical-testing">
-                          <h5>🔴 Critical Testing</h5>
-                          <p>{proposeContent.testingRecommendations.critical}</p>
-                        </div>
-                      )}
+                      ) : typeof proposeContent.testingRecommendations === 'object' ? (
+                        // Handle object structure with keys like "VPC Connector", "Authentication", etc.
+                        Object.entries(proposeContent.testingRecommendations).map(([category, recommendations]) => (
+                          <div key={category} className="testing-category">
+                            <h5>{category}</h5>
+                            {Array.isArray(recommendations) ? (
+                              <ul>
+                                {recommendations.map((rec, index) => (
+                                  <li key={index}>{rec}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p>{recommendations}</p>
+                            )}
+                          </div>
+                        ))
+                      ) : null}
                     </div>
                   )}
                   
