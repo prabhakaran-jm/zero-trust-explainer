@@ -495,9 +495,55 @@ async def scan(request: ScanRequest):
         
         logger.info(f"Published scan request with job_id={job_id}, message_id={message_id}")
         
-        # Note: Scan processor job can be triggered manually via:
-        # gcloud run jobs execute zte-scan-processor --args=scan_processor.py
-        # For now, we just publish to Pub/Sub
+        # Trigger scan processor job automatically
+        try:
+            import requests
+            from google.auth.transport.requests import Request
+            from google.auth import default
+            
+            # Get access token for API calls
+            credentials, project = default()
+            credentials.refresh(Request())
+            access_token = credentials.token
+            
+            # Build the REST API URL for scan processor job
+            job_name = f"projects/{PROJECT_ID}/locations/{REGION}/jobs/zte-scan-processor"
+            api_url = f"https://{REGION}-run.googleapis.com/v2/{job_name}:run"
+            
+            # Prepare the request payload with environment variables
+            payload = {
+                "overrides": {
+                    "containerOverrides": [
+                        {
+                            "env": [
+                                {"name": "JOB_ID", "value": job_id},
+                                {"name": "SERVICE_NAME", "value": request.service_name},
+                                {"name": "REGION", "value": request.region or REGION},
+                                {"name": "PROJECT_ID", "value": request.project_id or PROJECT_ID},
+                            ]
+                        }
+                    ]
+                }
+            }
+            
+            # Make the API call
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json"
+            }
+            
+            logger.info(f"Triggering scan processor job via REST API: {api_url}")
+            response = requests.post(api_url, json=payload, headers=headers)
+            
+            if response.status_code == 200:
+                logger.info(f"Successfully triggered scan processor job for job_id={job_id}")
+            else:
+                logger.warning(f"Failed to trigger scan processor job: {response.status_code} - {response.text}")
+                # Continue anyway - scan was published to Pub/Sub
+        
+        except Exception as job_error:
+            logger.warning(f"Failed to trigger scan processor job: {job_error}")
+            # Continue anyway - scan was published to Pub/Sub
         
         return {
             "job_id": job_id,
