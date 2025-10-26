@@ -19,6 +19,15 @@ Zero-Trust Explainer is a comprehensive security scanning and analysis tool for 
 
 ## Architecture
 
+**Visual Diagram**: See `docs/architecture-diagram.mmd` or open `docs/generate-diagram.html` for interactive visualization.
+
+**Architecture Flow**:
+```
+User Browser → Frontend (React) → Backend API (FastAPI) → AI Studio (Gemini Pro)
+                                                        → Pub/Sub → Scan Job → BigQuery
+                                                        → Propose Job → Cloud Storage
+```
+
 ### AI-Powered Backend (FastAPI + Gemini Pro)
 - **POST /scan** - Publishes scan requests to Pub/Sub
 - **GET /findings/{job_id}** - Retrieves findings from BigQuery with optional severity filtering
@@ -78,37 +87,152 @@ gcloud services enable \
 
 ### 3. Local Development
 
-#### Backend
+#### Prerequisites for Local Development
+- Python 3.11+ installed
+- Node.js 20+ and npm installed
+- GCP credentials configured (`gcloud auth application-default login`)
+- Google AI Studio API key
+- BigQuery dataset and table created (see Deployment section)
+
+#### Backend Development
+
+**Step 1: Create Virtual Environment**
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
 
-# Set environment variables
+# Activate (Linux/Mac)
+source venv/bin/activate
+
+# Activate (Windows PowerShell)
+venv\Scripts\Activate.ps1
+
+# Activate (Windows CMD)
+venv\Scripts\activate.bat
+```
+
+**Step 2: Install Dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+**Step 3: Set Environment Variables**
+
+Create a `.env` file in the `backend/` directory:
+```bash
+# backend/.env
+GCP_PROJECT_ID=your-project-id
+GEMINI_API_KEY=your-ai-studio-api-key  # Get from https://aistudio.google.com/
+PUBSUB_TOPIC=zte-scan-requests
+BQ_DATASET=zero_trust_explainer
+BQ_TABLE=findings
+REPORT_BUCKET=your-project-id-zte-reports
+REGION=us-central1
+PORT=8080
+```
+
+Or export environment variables:
+```bash
+# Linux/Mac
 export GCP_PROJECT_ID="your-project-id"
-export GEMINI_API_KEY="your-ai-studio-api-key"  # 🤖 AI Studio API Key
+export GEMINI_API_KEY="your-ai-studio-api-key"
 export PUBSUB_TOPIC="zte-scan-requests"
 export BQ_DATASET="zero_trust_explainer"
 export BQ_TABLE="findings"
 export REPORT_BUCKET="your-project-id-zte-reports"
 export REGION="us-central1"
+export PORT="8080"
 
-# Run locally
+# Windows PowerShell
+$env:GCP_PROJECT_ID="your-project-id"
+$env:GEMINI_API_KEY="your-ai-studio-api-key"
+$env:PUBSUB_TOPIC="zte-scan-requests"
+$env:BQ_DATASET="zero_trust_explainer"
+$env:BQ_TABLE="findings"
+$env:REPORT_BUCKET="your-project-id-zte-reports"
+$env:REGION="us-central1"
+$env:PORT="8080"
+```
+
+**Step 4: Run Backend Locally**
+```bash
 python main.py
 ```
 
-#### Frontend
+The backend should start on `http://localhost:8080`
+
+#### Frontend Development
+
+**Step 1: Install Dependencies**
 ```bash
 cd frontend
 npm install
+```
 
-# Set API URL
+**Step 2: Set Environment Variables**
+
+Create a `.env.local` file in the `frontend/` directory:
+```bash
+# frontend/.env.local
+VITE_API_URL=http://localhost:8080
+```
+
+Or export environment variable:
+```bash
+# Linux/Mac
 export VITE_API_URL="http://localhost:8080"
 
-# Run development server
+# Windows PowerShell
+$env:VITE_API_URL="http://localhost:8080"
+```
+
+**Step 3: Run Development Server**
+```bash
 npm run dev
 ```
+
+The frontend should start on `http://localhost:3000` (or another port if 3000 is taken)
+
+#### Running Both Frontend and Backend
+
+**Terminal 1 - Backend**
+```bash
+cd backend
+source venv/bin/activate  # Or venv\Scripts\activate on Windows
+python main.py
+```
+
+**Terminal 2 - Frontend**
+```bash
+cd frontend
+npm run dev
+```
+
+**Open Browser**
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8080
+
+#### Troubleshooting Local Development
+
+**Backend won't start**
+- Verify all environment variables are set (use `echo $GCP_PROJECT_ID` or `$env:GCP_PROJECT_ID`)
+- Check GCP credentials: `gcloud auth application-default login`
+- Ensure BigQuery dataset exists: `bq ls gcr-hackathon:zero_trust_explainer`
+
+**Frontend can't connect to backend**
+- Verify `VITE_API_URL` points to backend URL (http://localhost:8080)
+- Check backend is running on port 8080
+- Check browser console for CORS errors
+
+**AI features not working**
+- Verify `GEMINI_API_KEY` is correct
+- Check AI Studio API key is valid at https://aistudio.google.com/
+- Check backend logs for AI-related errors
+
+**BigQuery connection issues**
+- Ensure GCP project ID is correct
+- Verify BigQuery dataset and table exist
+- Check service account has BigQuery permissions
 
 ### 4. Deploy with Terraform
 

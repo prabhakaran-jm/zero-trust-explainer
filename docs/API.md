@@ -431,6 +431,160 @@ console.log(`Top Concerns: ${summary.summary.top_concerns.join(', ')}`);
 
 Not currently available. All operations are REST-based. For real-time updates, clients should poll the `/findings/{job_id}` endpoint.
 
+## Data Models
+
+### Finding
+
+Represents a security finding from a scan.
+
+```typescript
+interface Finding {
+  id: string;                      // Unique finding identifier
+  job_id: string;                  // Scan job identifier
+  severity: string;                // Severity level: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"
+  resource_type: string;           // Type of resource (e.g., "cloud_run_service")
+  resource_name: string;            // Name of the resource
+  issue_description: string;       // Description of the security issue
+  recommendation: string;           // Recommended fix
+  blast_radius?: string;           // Blast radius description (AI-generated)
+  affected_resources?: string;     // JSON array of affected resources (AI-generated)
+  risk_score?: number;             // Risk score 0-100 (AI-generated)
+  created_at: string;              // ISO 8601 timestamp
+}
+```
+
+### Job Summary
+
+Represents a scan job with summary statistics.
+
+```typescript
+interface JobSummary {
+  job_id: string;                  // Job identifier
+  finding_count: number;           // Total number of findings
+  severity_counts: {              // Count of findings by severity
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+  first_finding_at: string;        // ISO 8601 timestamp of first finding
+  last_finding_at: string;         // ISO 8601 timestamp of last finding
+}
+```
+
+### AI Explanation
+
+AI-powered detailed explanation of a finding.
+
+```typescript
+interface AIExplanation {
+  // Original finding fields
+  id: string;
+  job_id: string;
+  severity: string;
+  resource_type: string;
+  resource_name: string;
+  issue_description: string;
+  recommendation: string;
+  
+  // AI-generated fields
+  ai_explanation: string;          // Detailed technical explanation
+  blast_radius: string;            // Blast radius analysis
+  risk_assessment: string;          // Risk assessment with priority level
+  priority_score: number;           // Numerical priority score (1-100)
+  business_impact: "High" | "Medium" | "Low";  // Business impact assessment
+  remediation_urgency: "Immediate" | "High" | "Medium" | "Low";  // Urgency level
+  attack_vector: string;           // How the vulnerability could be exploited
+  compliance_impact: string;       // Compliance violations (SOC2, PCI, etc.)
+  ai_model: string;                // AI model used (e.g., "gemini-2.0-flash")
+  ai_powered: true;                // Always true for AI explanations
+  created_at: string;              // ISO 8601 timestamp
+}
+```
+
+### AI Summary
+
+AI-powered executive summary of scan results.
+
+```typescript
+interface AISummary {
+  executive_summary: string;        // High-level overview for executives
+  risk_overview: string;           // Overall risk assessment
+  top_concerns: string[];          // Top 3 most critical issues
+  compliance_status: string;       // Compliance impact assessment
+  remediation_roadmap: string;     // Phased approach to fixing issues
+  business_impact: string;          // Overall business risk assessment
+  recommendations: string[];        // Strategic recommendations
+  severity_counts: {               // Count of findings by severity
+    CRITICAL: number;
+    HIGH: number;
+    MEDIUM: number;
+    LOW: number;
+  };
+  ai_model: string;                 // AI model used (e.g., "gemini-2.0-flash")
+  ai_powered: true;                 // Always true for AI summaries
+}
+```
+
+### AI Proposal
+
+AI-generated fix proposal with Terraform code.
+
+```typescript
+interface AIProposal {
+  // Summary by severity
+  summary: {
+    [key: string]: string;  // Key: "CRITICAL", "HIGH", etc. Value: summary text
+  };
+  
+  // Terraform code by finding
+  terraform_code: {
+    [key: string]: {                // Key: finding identifier
+      description: string;          // Description of the fix
+      code: string;                 // Terraform code
+    };
+  };
+  
+  // Implementation steps by finding
+  implementation_steps: {
+    [key: string]: string[];        // Key: finding identifier, Value: array of steps
+  };
+  
+  // Testing recommendations by finding
+  testing_recommendations: {
+    [key: string]: string[];        // Key: finding identifier, Value: array of recommendations
+  };
+  
+  ai_model: string;                 // AI model used (e.g., "gemini-2.0-flash")
+  ai_powered: true;                  // Always true for AI proposals
+}
+```
+
+### Scan Request
+
+Request to initiate a scan.
+
+```typescript
+interface ScanRequest {
+  service_name: string;             // Name of Cloud Run service to scan
+  region?: string;                   // GCP region (optional, defaults to env var)
+  project_id?: string;               // GCP project ID (optional, defaults to env var)
+}
+```
+
+### Scan Response
+
+Response after submitting a scan.
+
+```typescript
+interface ScanResponse {
+  job_id: string;                   // Generated job identifier
+  status: "queued" | "processing" | "completed" | "failed";
+  message: string;                   // Status message
+  pubsub_message_id?: string;        // Pub/Sub message ID
+}
+```
+
 ## Versioning
 
 Current version: v1.0.0

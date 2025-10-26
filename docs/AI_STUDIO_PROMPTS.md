@@ -68,9 +68,21 @@ When a user clicks "AI Explain" on a finding, this prompt analyzes the security 
 - Attack vector analysis
 - Compliance impact assessment (SOC2, PCI DSS, etc.)
 
+**How It Works**:
+1. User clicks "AI Explain" on a finding in the frontend
+2. Frontend calls `GET /explain/{finding_id}` 
+3. Backend queries BigQuery for finding details
+4. AI Service constructs the prompt with finding data
+5. Sends prompt to Gemini Pro via `google-generativeai` SDK
+6. Parses JSON response (removes markdown code blocks)
+7. Returns structured explanation to frontend
+8. Frontend displays AI analysis in a modal with formatted sections
+
+**Error Handling**: Falls back to rule-based explanation if AI is unavailable
+
 **Model**: Gemini Pro/Flash  
-**Temperature**: Default (typically 0.7)  
-**Max Tokens**: Not explicitly set (uses Gemini defaults)
+**Temperature**: Default (0.7)  
+**Max Tokens**: Not explicitly set (uses Gemini defaults ~8000)
 
 ---
 
@@ -125,9 +137,20 @@ Provide analysis in JSON format with these keys:
 **Usage Example**:
 Generates executive summaries that translate technical security findings into business language, helping stakeholders understand risk, compliance impact, and remediation priorities.
 
+**How It Works**:
+1. User requests summary via frontend or API call to `GET /summary/{job_id}`
+2. Backend retrieves all findings for the job from BigQuery
+3. AI Service constructs prompt with aggregated findings data
+4. Sends to Gemini Pro via `google-generativeai` SDK  
+5. Parses JSON response with executive-level analysis
+6. Returns summary with risk overview, compliance status, and roadmap
+7. Frontend displays in modal or API returns to caller
+
+**Error Handling**: Falls back to rule-based summary if AI is unavailable
+
 **Model**: Gemini Pro/Flash  
-**Temperature**: Default  
-**Max Tokens**: Not explicitly set
+**Temperature**: Default (0.7)  
+**Max Tokens**: Not explicitly set (uses Gemini defaults ~8000)
 
 ---
 
@@ -136,13 +159,14 @@ Generates executive summaries that translate technical security findings into bu
 **Purpose**: Generate production-ready Terraform code to remediate Cloud Run security findings, including implementation guides and testing recommendations.
 
 **Endpoint**: `POST /propose/{job_id}`  
-**Implementation**: `backend/main.py` lines 396-408
+**Implementation**: `backend/propose_job.py` lines 167-179
 
 **Full Prompt**:
 ```
 You are a Google Cloud security expert. Generate comprehensive fix proposals for these Cloud Run IAM findings:
 
 {findings_summary}
+(Formatted as: "- SEVERITY: Resource Type (Resource Name): Issue Description")
 
 Please provide:
 1. A summary of all issues and their business impact
@@ -194,9 +218,26 @@ When a user clicks "AI Propose", this prompt generates:
 - Testing recommendations for validation
 - Business impact summaries
 
+**How It Works**:
+1. User clicks "AI Propose" on a scan job
+2. Frontend calls `POST /propose/{job_id}`
+3. Backend retrieves all findings from BigQuery
+4. Triggers Cloud Run Job (`zte-propose-job`)
+5. Job executes `propose_job.py` which:
+   - Constructs prompt with findings summary
+   - Sends to Gemini Pro via `google-generativeai` SDK
+   - Parses JSON response (removes markdown)
+   - Formats as comprehensive report
+   - Uploads to Cloud Storage as JSON
+   - Returns signed URL to backend
+6. Backend returns signed URL to frontend
+7. Frontend displays AI proposal with Terraform code and guides
+
+**Error Handling**: Falls back to basic proposal if AI is unavailable
+
 **Model**: Gemini Pro/Flash  
-**Temperature**: Default  
-**Max Tokens**: Not explicitly set
+**Temperature**: Default (0.7)  
+**Max Tokens**: Not explicitly set (uses Gemini defaults ~8000)
 
 ---
 

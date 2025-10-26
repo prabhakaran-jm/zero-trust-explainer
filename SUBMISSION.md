@@ -62,6 +62,17 @@ Zero-Trust Explainer leverages **Google AI Studio** and **Gemini Pro** to provid
 
 ## 🏗️ Technical Architecture
 
+### Architecture Diagram
+
+**Visual Architecture**: See `docs/architecture-diagram.mmd` or `docs/generate-diagram.html` for interactive diagram.
+
+**Quick Reference**:
+- **User Browser** → Cloud Run Frontend → Backend API
+- **Backend** → AI Studio (Gemini Pro) for AI analysis
+- **Backend** → Pub/Sub → Scan Processor Job → BigQuery
+- **Backend** → Propose Job → AI Analysis → Cloud Storage
+- **All data flows** through Cloud Run services and jobs
+
 ### Backend (FastAPI + Gemini Pro)
 - **AI Service Integration**: Google AI Studio with Gemini Pro (automatic model selection)
 - **RESTful API**: Comprehensive endpoints for all operations
@@ -261,5 +272,22 @@ The AI-powered approach not only improves security outcomes but also democratize
 Visit our live demo and see how Gemini Pro transforms Cloud Run security findings into actionable insights.
 
 ---
+
+## 📝 Blog Post
+
+**Technical Blog**: [Link to be added after publishing on dev.to/Medium/Hashnode]
+
+> **Note**: Blog post will cover:
+> - How we built the project with Cloud Run
+> - AI Studio integration details
+> - Architecture breakdown
+> - Technical challenges and solutions
+> - Real-world impact and time savings
+
+## 📱 Social Media
+
+### LinkedIn
+- **URL**: [To be added after posting]
+- **Hashtags**: #CloudRunHackathon #GoogleCloud #GeminiAI #AISecurity #DevOps
 
 *Built with ❤️ for the Google Cloud Run Hackathon*

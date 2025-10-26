@@ -1,0 +1,62 @@
+graph TB
+    subgraph "User Layer"
+        User[👤 User Browser]
+    end
+
+    subgraph "Cloud Run Services"
+        Frontend["🌐 Frontend<br/>(React/Vite)"]
+        Backend["⚙️ Backend API<br/>(FastAPI + Python)"]
+    end
+
+    subgraph "AI Services"
+        AI["🤖 Google AI Studio<br/>(Gemini Pro)"]
+    end
+
+    subgraph "Cloud Run Jobs"
+        ScanJob["📊 Scan Processor Job<br/>• IAM Scanning<br/>• Findings Discovery"]
+        ProposeJob["📝 Propose Job<br/>• AI Report Gen<br/>• Terraform Code"]
+    end
+
+    subgraph "Google Cloud Data Services"
+        PubSub["💬 Pub/Sub Topic<br/>Scan Requests"]
+        BigQuery["🗄️ BigQuery<br/>Findings Table"]
+        GCS["☁️ Cloud Storage<br/>Reports Bucket"]
+    end
+
+    %% User Flow
+    User -->|HTTPS| Frontend
+    Frontend -->|REST API| Backend
+
+    %% AI Explain Flow
+    Backend -->|"AI Explain"| AI
+    AI -->|JSON Response| Backend
+    Backend -->|Query| BigQuery
+    Backend -->|JSON Data| Frontend
+
+    %% Scan Workflow
+    Backend -->|Publish| PubSub
+    PubSub -->|Trigger| ScanJob
+    ScanJob -->|Write| BigQuery
+
+    %% Propose Workflow
+    Backend -->|Trigger| ProposeJob
+    ProposeJob -->|Read| BigQuery
+    ProposeJob -->|AI Analysis| AI
+    AI -->|AI Proposal| ProposeJob
+    ProposeJob -->|Upload| GCS
+    GCS -->|Signed URL| Backend
+    Backend -->|Report Link| Frontend
+
+    %% Styling
+    classDef userLayer fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+    classDef computeLayer fill:#FFF3E0,stroke:#F57C00,stroke-width:2px
+    classDef aiLayer fill:#F3E5F5,stroke:#7B1FA2,stroke-width:3px
+    classDef dataLayer fill:#E0F2F1,stroke:#00695C,stroke-width:2px
+    classDef jobLayer fill:#FFFDE7,stroke:#F9A825,stroke-width:2px,stroke-dasharray: 5 5
+
+    class User,Frontend userLayer
+    class Backend computeLayer
+    class AI aiLayer
+    class PubSub,BigQuery,GCS dataLayer
+    class ScanJob,ProposeJob jobLayer
+
