@@ -819,36 +819,68 @@ function App() {
                       
                       // If it's an object with phases, format it nicely
                       if (typeof parsedRoadmap === 'object' && parsedRoadmap !== null) {
+                        // Helper function to render a phase
+                        const renderPhase = (phase, index) => {
+                          // Extract phase name from phase.phase or phase.name or default to "Phase {index + 1}"
+                          const phaseName = phase.phase || phase.name || `Phase ${index + 1}`
+                          
+                          // Determine priority from phase.priority or infer from phase name
+                          let priority = phase.priority
+                          if (!priority && phaseName) {
+                            const nameLower = phaseName.toLowerCase()
+                            if (nameLower.includes('immediate') || nameLower.includes('critical')) {
+                              priority = 'IMMEDIATE'
+                            } else if (nameLower.includes('short') || nameLower.includes('high')) {
+                              priority = 'HIGH'
+                            } else if (nameLower.includes('mid') || nameLower.includes('medium')) {
+                              priority = 'MEDIUM'
+                            } else if (nameLower.includes('long') || nameLower.includes('low')) {
+                              priority = 'LOW'
+                            }
+                          }
+                          
+                          return (
+                            <div key={index} className="remediation-roadmap-phase">
+                              <h5>
+                                {phaseName}
+                                {priority && (
+                                  <span className={`phase-priority ${priority.toLowerCase().replace('_', '-')}`}>
+                                    {priority}
+                                  </span>
+                                )}
+                              </h5>
+                              {phase.actions && Array.isArray(phase.actions) && (
+                                <ul>
+                                  {phase.actions.map((action, actionIndex) => (
+                                    <li key={actionIndex}>
+                                      {typeof action === 'string' ? action : (action.description || action.text || JSON.stringify(action))}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                              {phase.description && (
+                                <p style={{ marginTop: '0.5rem', color: '#666', fontSize: '0.9rem' }}>
+                                  {typeof phase.description === 'string' ? phase.description : JSON.stringify(phase.description)}
+                                </p>
+                              )}
+                            </div>
+                          )
+                        }
+                        
+                        // Check if it's directly an array of phases
+                        if (Array.isArray(parsedRoadmap)) {
+                          return (
+                            <div className="remediation-roadmap-phases">
+                              {parsedRoadmap.map(renderPhase)}
+                            </div>
+                          )
+                        }
+                        
                         // Check if it has phases array
                         if (parsedRoadmap.phases && Array.isArray(parsedRoadmap.phases)) {
                           return (
                             <div className="remediation-roadmap-phases">
-                              {parsedRoadmap.phases.map((phase, index) => (
-                                <div key={index} className="remediation-roadmap-phase">
-                                  <h5>
-                                    Phase {index + 1}
-                                    {phase.priority && (
-                                      <span className={`phase-priority ${phase.priority.toLowerCase()}`}>
-                                        {phase.priority}
-                                      </span>
-                                    )}
-                                  </h5>
-                                  {phase.actions && Array.isArray(phase.actions) && (
-                                    <ul>
-                                      {phase.actions.map((action, actionIndex) => (
-                                        <li key={actionIndex}>
-                                          {typeof action === 'string' ? action : (action.description || action.text || JSON.stringify(action))}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  )}
-                                  {phase.description && (
-                                    <p style={{ marginTop: '0.5rem', color: '#666', fontSize: '0.9rem' }}>
-                                      {typeof phase.description === 'string' ? phase.description : JSON.stringify(phase.description)}
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
+                              {parsedRoadmap.phases.map(renderPhase)}
                             </div>
                           )
                         }

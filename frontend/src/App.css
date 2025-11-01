@@ -1258,6 +1258,22 @@ button .spinner {
   color: #333;
 }
 
+.remediation-roadmap-phase .phase-priority.low {
+  background: #28a745;
+  color: white;
+}
+
+.remediation-roadmap-phase h5 {
+  margin: 0 0 0.75rem 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .remediation-roadmap-phase ul {
   margin: 0.75rem 0 0 0;
   padding-left: 1.5rem;
