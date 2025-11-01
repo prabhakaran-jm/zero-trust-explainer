@@ -643,104 +643,115 @@ function App() {
             </div>
             
             <div className="modal-body">
-              {currentSummary.ai_powered && (
-                <div className="ai-badge" style={{ marginBottom: '1rem' }}>
-                  <span>Powered by {currentSummary.ai_model || 'AI'}</span>
-                </div>
-              )}
-
-              {/* Executive Summary */}
-              {currentSummary.executive_summary && (
-                <div className="explanation-section">
-                  <h4>📋 Executive Summary</h4>
-                  <p>{currentSummary.executive_summary}</p>
-                </div>
-              )}
-
-              {/* Risk Overview */}
-              {currentSummary.risk_overview && (
-                <div className="explanation-section">
-                  <h4>⚠️ Risk Overview</h4>
-                  <p>{currentSummary.risk_overview}</p>
-                </div>
-              )}
-
-              {/* Top Concerns */}
-              {currentSummary.top_concerns && Array.isArray(currentSummary.top_concerns) && currentSummary.top_concerns.length > 0 && (
-                <div className="explanation-section">
-                  <h4>🚨 Top Concerns</h4>
-                  <ul>
-                    {currentSummary.top_concerns.map((concern, index) => (
-                      <li key={index}>{concern}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Compliance Status */}
-              {currentSummary.compliance_status && (
-                <div className="explanation-section">
-                  <h4>📜 Compliance Status</h4>
-                  <p>{currentSummary.compliance_status}</p>
-                </div>
-              )}
-
-              {/* Remediation Roadmap */}
-              {currentSummary.remediation_roadmap && (
-                <div className="explanation-section">
-                  <h4>🛠️ Remediation Roadmap</h4>
-                  <p>{currentSummary.remediation_roadmap}</p>
-                </div>
-              )}
-
-              {/* Business Impact */}
-              {currentSummary.business_impact && (
-                <div className="explanation-section">
-                  <h4>💼 Business Impact</h4>
-                  <p>{currentSummary.business_impact}</p>
-                </div>
-              )}
-
-              {/* Recommendations */}
-              {currentSummary.recommendations && Array.isArray(currentSummary.recommendations) && currentSummary.recommendations.length > 0 && (
-                <div className="explanation-section">
-                  <h4>💡 Recommendations</h4>
-                  <ul>
-                    {currentSummary.recommendations.map((rec, index) => (
-                      <li key={index}>{rec}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Severity Counts */}
-              {currentSummary.severity_counts && (
-                <div className="explanation-section">
-                  <h4>📊 Findings Breakdown</h4>
-                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                    {currentSummary.severity_counts.CRITICAL > 0 && (
-                      <span className="severity-badge critical" style={{ backgroundColor: '#dc2626' }}>
-                        {currentSummary.severity_counts.CRITICAL} Critical
-                      </span>
+              {(() => {
+                // Extract summary object - backend returns { summary: {...}, ... }
+                const summaryData = currentSummary.summary || currentSummary
+                const aiModel = summaryData.ai_model || currentSummary.ai_model
+                const aiPowered = summaryData.ai_powered !== undefined ? summaryData.ai_powered : currentSummary.ai_powered
+                
+                return (
+                  <>
+                    {aiPowered && (
+                      <div className="ai-badge" style={{ marginBottom: '1rem' }}>
+                        <span>Powered by {aiModel || 'AI'}</span>
+                      </div>
                     )}
-                    {currentSummary.severity_counts.HIGH > 0 && (
-                      <span className="severity-badge high" style={{ backgroundColor: '#f59e0b' }}>
-                        {currentSummary.severity_counts.HIGH} High
-                      </span>
+
+                    {/* Executive Summary */}
+                    {summaryData.executive_summary && (
+                      <div className="explanation-section">
+                        <h4>📋 Executive Summary</h4>
+                        <p>{summaryData.executive_summary}</p>
+                      </div>
                     )}
-                    {currentSummary.severity_counts.MEDIUM > 0 && (
-                      <span className="severity-badge medium" style={{ backgroundColor: '#eab308' }}>
-                        {currentSummary.severity_counts.MEDIUM} Medium
-                      </span>
+
+                    {/* Risk Overview */}
+                    {summaryData.risk_overview && (
+                      <div className="explanation-section">
+                        <h4>⚠️ Risk Overview</h4>
+                        <p>{summaryData.risk_overview}</p>
+                      </div>
                     )}
-                    {currentSummary.severity_counts.LOW > 0 && (
-                      <span className="severity-badge low" style={{ backgroundColor: '#16a34a' }}>
-                        {currentSummary.severity_counts.LOW} Low
-                      </span>
+
+                    {/* Top Concerns */}
+                    {summaryData.top_concerns && Array.isArray(summaryData.top_concerns) && summaryData.top_concerns.length > 0 && (
+                      <div className="explanation-section">
+                        <h4>🚨 Top Concerns</h4>
+                        <ul>
+                          {summaryData.top_concerns.map((concern, index) => (
+                            <li key={index}>{concern}</li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
-                  </div>
-                </div>
-              )}
+
+                    {/* Compliance Status */}
+                    {summaryData.compliance_status && (
+                      <div className="explanation-section">
+                        <h4>📜 Compliance Status</h4>
+                        <p>{summaryData.compliance_status}</p>
+                      </div>
+                    )}
+
+                    {/* Remediation Roadmap */}
+                    {summaryData.remediation_roadmap && (
+                      <div className="explanation-section">
+                        <h4>🛠️ Remediation Roadmap</h4>
+                        <p>{summaryData.remediation_roadmap}</p>
+                      </div>
+                    )}
+
+                    {/* Business Impact */}
+                    {summaryData.business_impact && (
+                      <div className="explanation-section">
+                        <h4>💼 Business Impact</h4>
+                        <p>{summaryData.business_impact}</p>
+                      </div>
+                    )}
+
+                    {/* Recommendations */}
+                    {summaryData.recommendations && Array.isArray(summaryData.recommendations) && summaryData.recommendations.length > 0 && (
+                      <div className="explanation-section">
+                        <h4>💡 Recommendations</h4>
+                        <ul>
+                          {summaryData.recommendations.map((rec, index) => (
+                            <li key={index}>{rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Severity Counts */}
+                    {summaryData.severity_counts && (
+                      <div className="explanation-section">
+                        <h4>📊 Findings Breakdown</h4>
+                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                          {summaryData.severity_counts.CRITICAL > 0 && (
+                            <span className="severity-badge critical" style={{ backgroundColor: '#dc2626' }}>
+                              {summaryData.severity_counts.CRITICAL} Critical
+                            </span>
+                          )}
+                          {summaryData.severity_counts.HIGH > 0 && (
+                            <span className="severity-badge high" style={{ backgroundColor: '#f59e0b' }}>
+                              {summaryData.severity_counts.HIGH} High
+                            </span>
+                          )}
+                          {summaryData.severity_counts.MEDIUM > 0 && (
+                            <span className="severity-badge medium" style={{ backgroundColor: '#eab308' }}>
+                              {summaryData.severity_counts.MEDIUM} Medium
+                            </span>
+                          )}
+                          {summaryData.severity_counts.LOW > 0 && (
+                            <span className="severity-badge low" style={{ backgroundColor: '#16a34a' }}>
+                              {summaryData.severity_counts.LOW} Low
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
             </div>
           </div>
         </div>
