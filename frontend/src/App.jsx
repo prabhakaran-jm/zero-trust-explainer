@@ -701,16 +701,18 @@ function App() {
                     </div>
                   </div>
 
-                  {parsedSummaryData.severity_counts && (
+                  {parsedSummaryData.severity_counts && typeof parsedSummaryData.severity_counts === 'object' && Object.keys(parsedSummaryData.severity_counts).length > 0 && (
                     <div className="summary-section">
                       <h4>Findings Breakdown</h4>
                       <div className="severity-counts-grid">
-                        {Object.entries(parsedSummaryData.severity_counts).map(([severity, count]) => (
-                          <div key={severity} className={`severity-count-card severity-${severity.toLowerCase()}`}>
-                            <span className="severity-count">{count}</span>
-                            <span className="severity-label">{severity}</span>
-                          </div>
-                        ))}
+                        {Object.entries(parsedSummaryData.severity_counts)
+                          .filter(([severity, count]) => severity && (count !== null && count !== undefined))
+                          .map(([severity, count]) => (
+                            <div key={String(severity)} className={`severity-count-card severity-${String(severity).toLowerCase()}`}>
+                              <span className="severity-count">{count}</span>
+                              <span className="severity-label">{String(severity)}</span>
+                            </div>
+                          ))}
                       </div>
                     </div>
                   )}
