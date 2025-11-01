@@ -1,6 +1,7 @@
 import './JobCard.css'
+import Spinner from './Spinner'
 
-function JobCard({ job, isSelected, onSelect, onPropose, aiLoading }) {
+function JobCard({ job, isSelected, onSelect, onPropose, onCopyJobId, aiLoading }) {
   const getSeverityColor = (severity) => {
     const colors = {
       critical: '#dc3545',
@@ -20,14 +21,31 @@ function JobCard({ job, isSelected, onSelect, onPropose, aiLoading }) {
       onClick={onSelect}
     >
       <div className="job-card-header">
-        <h3>Job: {job.job_id.substring(0, 8)}...</h3>
+        <div className="job-id-row">
+          <h3 title={job.job_id}>Job: {job.job_id.substring(0, 8)}...</h3>
+          <button
+            className="copy-btn"
+            onClick={(e) => {
+              e.stopPropagation()
+              onCopyJobId(job.job_id)
+            }}
+            aria-label="Copy job ID"
+            title="Copy job ID"
+          >
+            📋
+          </button>
+        </div>
         <span className="finding-count">{totalFindings} findings</span>
       </div>
 
       <div className="severity-breakdown">
         {severityCounts.critical > 0 && (
           <div className="severity-item" style={{ color: getSeverityColor('critical') }}>
-            <span className="severity-badge" style={{ background: getSeverityColor('critical') }}>
+            <span 
+              className="severity-badge" 
+              style={{ background: getSeverityColor('critical') }}
+              aria-label="Severity: Critical"
+            >
               {severityCounts.critical}
             </span>
             Critical
@@ -35,7 +53,11 @@ function JobCard({ job, isSelected, onSelect, onPropose, aiLoading }) {
         )}
         {severityCounts.high > 0 && (
           <div className="severity-item" style={{ color: getSeverityColor('high') }}>
-            <span className="severity-badge" style={{ background: getSeverityColor('high') }}>
+            <span 
+              className="severity-badge" 
+              style={{ background: getSeverityColor('high') }}
+              aria-label="Severity: High"
+            >
               {severityCounts.high}
             </span>
             High
@@ -43,7 +65,11 @@ function JobCard({ job, isSelected, onSelect, onPropose, aiLoading }) {
         )}
         {severityCounts.medium > 0 && (
           <div className="severity-item" style={{ color: getSeverityColor('medium') }}>
-            <span className="severity-badge" style={{ background: getSeverityColor('medium') }}>
+            <span 
+              className="severity-badge" 
+              style={{ background: getSeverityColor('medium') }}
+              aria-label="Severity: Medium"
+            >
               {severityCounts.medium}
             </span>
             Medium
@@ -51,7 +77,11 @@ function JobCard({ job, isSelected, onSelect, onPropose, aiLoading }) {
         )}
         {severityCounts.low > 0 && (
           <div className="severity-item" style={{ color: getSeverityColor('low') }}>
-            <span className="severity-badge" style={{ background: getSeverityColor('low') }}>
+            <span 
+              className="severity-badge" 
+              style={{ background: getSeverityColor('low') }}
+              aria-label="Severity: Low"
+            >
               {severityCounts.low}
             </span>
             Low
@@ -71,7 +101,13 @@ function JobCard({ job, isSelected, onSelect, onPropose, aiLoading }) {
           }}
           disabled={aiLoading?.propose === job.job_id}
         >
-          {aiLoading?.propose === job.job_id ? '⏳ Loading...' : '🤖 AI Propose'}
+          {aiLoading?.propose === job.job_id ? (
+            <>
+              <Spinner size="14px" /> Loading...
+            </>
+          ) : (
+            '🤖 AI Propose'
+          )}
         </button>
       </div>
     </div>
