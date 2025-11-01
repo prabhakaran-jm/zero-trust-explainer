@@ -8,6 +8,8 @@ import Spinner from './components/Spinner'
 import { api } from './services/api'
 import { notify } from './utils/notify'
 import { copyToClipboard } from './utils/clipboard'
+import { formatTerraformCode } from './utils/terraformFormatter'
+import { normalizeProposal } from './utils/normalizeProposal'
 import usePolling from './hooks/usePolling'
 
 function App() {
@@ -35,13 +37,29 @@ function App() {
   const fetchJobs = useCallback(async () => {
     try {
       const data = await api.listJobs()
-      setJobs(data.jobs || [])
+      // Sort jobs by first_finding_at descending (newest first)
+      const sortedJobs = (data.jobs || []).sort((a, b) => {
+        if (!a.first_finding_at && !b.first_finding_at) return 0
+        if (!a.first_finding_at) return 1
+        if (!b.first_finding_at) return -1
+        return new Date(b.first_finding_at) - new Date(a.first_finding_at)
+      })
+      setJobs(sortedJobs)
     } catch (err) {
       console.error('Error loading jobs:', err)
     }
   }, [])
 
   usePolling(fetchJobs, 3000, autoRefresh)
+  
+  // Debug logging for auto-refresh
+  useEffect(() => {
+    if (autoRefresh) {
+      console.log('Auto-refresh enabled, polling every 3s for 20s')
+    } else {
+      console.log('Auto-refresh disabled')
+    }
+  }, [autoRefresh])
 
   useEffect(() => {
     if (autoRefresh) {
@@ -110,14 +128,16 @@ function App() {
       setAutoRefresh(true)
       setLoading(false)
       
-      // Insert new job at the top if it appears
-      setTimeout(async () => {
-        const data = await api.listJobs()
-        const jobExists = data.jobs?.some(job => job.job_id === jobId)
-        if (jobExists) {
-          setJobs(data.jobs || [])
-        }
+      // Force immediate fetch to check for new job (polling will continue automatically)
+      // Give it a moment for the job to appear in BigQuery
+      setTimeout(() => {
+        fetchJobs()
       }, 2000)
+      
+      // Also fetch again after a longer delay to catch jobs that take time to process
+      setTimeout(() => {
+        fetchJobs()
+      }, 5000)
     } catch (err) {
       notify.err('Failed to schedule scan: ' + err.message)
       setError('Failed to submit scan: ' + err.message)
@@ -173,37 +193,96 @@ function App() {
       }
       
       if (result.ai_powered && result.ai_proposals) {
-        // Use the direct fields from ai_proposals
-        const proposals = result.ai_proposals
+        // Normalize the proposals to ensure consistent structure
+        const normalized = normalizeProposal(result.ai_proposals)
         
-        console.log('AI Proposals:', proposals) // Debug logging
+        // Check if this looks like a fallback/minimal response from backend
+        const isFallbackResponse = (proposals) => {
+          if (!proposals || typeof proposals !== 'object') return false
+          
+          // Check for common fallback patterns
+          const hasFallbackTerraform = proposals.terraform_code === "# Generated fixes - see summary above" ||
+                                      proposals.terraform_code === "# AI-generated fixes" ||
+                                      proposals.terraform_code === "# Manual review required"
+          
+          const hasFallbackSteps = Array.isArray(proposals.implementation_steps) &&
+                                   proposals.implementation_steps.length === 1 &&
+                                   (proposals.implementation_steps[0] === "Review the detailed summary" ||
+                                    proposals.implementation_steps[0] === "Manual review required" ||
+                                    proposals.implementation_steps[0] === "Review findings manually")
+          
+          const hasFallbackTesting = Array.isArray(proposals.testing_recommendations) &&
+                                     proposals.testing_recommendations.length === 1 &&
+                                     (proposals.testing_recommendations[0] === "Test all changes in development first" ||
+                                      proposals.testing_recommendations[0] === "Test thoroughly" ||
+                                      proposals.testing_recommendations[0] === "Test manually")
+          
+          return hasFallbackTerraform && hasFallbackSteps && hasFallbackTesting
+        }
         
-        // Handle summary - it can be a string or object
-        if (proposals.ai_proposal) {
-          if (typeof proposals.ai_proposal === 'string') {
-            content.summary = { raw: proposals.ai_proposal }
+        const isFallback = isFallbackResponse(result.ai_proposals)
+        
+        if (isFallback) {
+          // This is a fallback response - likely AI response couldn't be parsed
+          console.warn('Received fallback response from backend - AI response may have been unparseable')
+          
+          // Try to extract any useful content from ai_proposal if it exists
+          if (result.ai_proposals.ai_proposal && typeof result.ai_proposals.ai_proposal === 'string') {
+            content.summary = { 
+              raw: result.ai_proposals.ai_proposal,
+              isFallback: true,
+              message: '⚠️ AI response was partially parsed. Showing raw summary below.'
+            }
+          } else if (normalized && normalized.summary) {
+            // Use normalized summary if available
+            content.summary = normalized.summary
+            if (content.summary.raw) {
+              content.summary.isFallback = true
+              content.summary.message = '⚠️ AI response format was unexpected. Showing content below.'
+            }
           } else {
-            content.summary = proposals.ai_proposal
+            // Last resort - show error message
+            content.summary = { 
+              raw: 'The AI response could not be parsed. This may be due to:\n- Network issues\n- AI service temporarily unavailable\n- Response format issues\n\nPlease try again or check the full report link below.',
+              isFallback: true
+            }
           }
-        }
-        
-        // Handle implementation steps - expect array of strings
-        if (proposals.implementation_steps) {
-          content.implementationSteps = proposals.implementation_steps
-        }
-        
-        // Handle testing recommendations - expect array of strings
-        if (proposals.testing_recommendations) {
-          content.testingRecommendations = proposals.testing_recommendations
-        }
-        
-        // Handle Terraform code
-        if (proposals.terraform_code) {
-          if (typeof proposals.terraform_code === 'string') {
-            content.terraformCode = proposals.terraform_code
-          } else if (typeof proposals.terraform_code === 'object') {
-            content.terraformCodeBlocks = proposals.terraform_code
+          
+          // Still show what we have, even if minimal
+          if (normalized) {
+            if (normalized.implementationSteps) {
+              content.implementationSteps = normalized.implementationSteps
+            }
+            if (normalized.testingRecommendations) {
+              content.testingRecommendations = normalized.testingRecommendations
+            }
+            if (normalized.terraformCode) {
+              content.terraformCode = normalized.terraformCode
+            }
+            if (normalized.terraformCodeBlocks) {
+              content.terraformCodeBlocks = normalized.terraformCodeBlocks
+            }
           }
+        } else if (normalized) {
+          // Normal response - use normalized data
+          if (normalized.summary) {
+            content.summary = normalized.summary
+          }
+          if (normalized.implementationSteps) {
+            content.implementationSteps = normalized.implementationSteps
+          }
+          if (normalized.testingRecommendations) {
+            content.testingRecommendations = normalized.testingRecommendations
+          }
+          if (normalized.terraformCode) {
+            content.terraformCode = normalized.terraformCode
+          }
+          if (normalized.terraformCodeBlocks) {
+            content.terraformCodeBlocks = normalized.terraformCodeBlocks
+          }
+        } else {
+          // Normalization failed but not a known fallback
+          content.summary = { raw: String(result.ai_proposals) }
         }
       }
       
@@ -518,14 +597,273 @@ function App() {
                 <div className="ai-analysis">
                   <h3>🤖 AI-Powered Analysis ({proposeContent.aiModel})</h3>
                   
-                  {proposeContent.summary && (
-                    <div className="security-summary">
-                      <h4>📊 Security Summary</h4>
+                      {proposeContent.summary && (
+                        <div className="security-summary">
+                          <h4>📊 Security Summary</h4>
+                          
+                          {proposeContent.summary.isFallback && proposeContent.summary.message && (
+                            <div className="fallback-warning" style={{ 
+                              background: '#fff3cd', 
+                              border: '1px solid #ffc107', 
+                              borderRadius: '8px', 
+                              padding: '0.75rem', 
+                              marginBottom: '1rem',
+                              fontSize: '0.9rem'
+                            }}>
+                              <strong>⚠️ Notice:</strong> {proposeContent.summary.message}
+                            </div>
+                          )}
+                          
+                          {proposeContent.summary.raw && (
+                        <div className="raw-content">
+                          {(() => {
+                            // Try to parse and display JSON in a user-friendly format
+                            let displayText = proposeContent.summary.raw
+                            
+                            // Remove common prefixes
+                            displayText = displayText.replace(/^json\s*/i, '').trim()
+                            
+                            // Try multiple strategies to parse JSON
+                            try {
+                              // Strategy 1: Find outermost JSON object with balanced braces
+                              let braceCount = 0
+                              let startIdx = -1
+                              let objStart = -1
+                              let objEnd = -1
+                              
+                              for (let i = 0; i < displayText.length; i++) {
+                                if (displayText[i] === '{') {
+                                  if (startIdx === -1) startIdx = i
+                                  if (objStart === -1) objStart = i
+                                  braceCount++
+                                } else if (displayText[i] === '}') {
+                                  braceCount--
+                                  if (braceCount === 0 && objStart !== -1) {
+                                    objEnd = i + 1
+                                    break
+                                  }
+                                }
+                              }
+                              
+                              let jsonStr = null
+                              if (objStart !== -1 && objEnd !== -1) {
+                                jsonStr = displayText.substring(objStart, objEnd)
+                              } else {
+                                // Fallback to regex
+                                const jsonMatch = displayText.match(/\{[\s\S]*\}/)
+                                if (jsonMatch) jsonStr = jsonMatch[0]
+                              }
+                              
+                              if (jsonStr) {
+                                const parsed = JSON.parse(jsonStr)
+                                
+                                // If it has a summary key, extract and format that
+                                if (parsed.summary && typeof parsed.summary === 'object') {
+                                  const summary = parsed.summary
+                                  
+                                  // If summary has issues array, format nicely
+                                  if (summary.issues && Array.isArray(summary.issues)) {
+                                    return (
+                                      <div className="issues-list">
+                                        {summary.issues.map((issue, idx) => (
+                                          <div key={idx} className={`issue-item severity-${(issue.severity || 'unknown')?.toLowerCase()}`}>
+                                            <strong>{issue.severity || 'UNKNOWN'}:</strong> {issue.title || issue.description || issue.issue || issue.name}
+                                            {issue.description && issue.description !== issue.title && (
+                                              <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+                                                {issue.description}
+                                              </div>
+                                            )}
+                                            {issue.business_impact && (
+                                              <div className="business-impact-text" style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+                                                {issue.business_impact}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )
+                                  }
+                                  
+                                  // If summary has description, show that
+                                  if (summary.description) {
+                                    return (
+                                      <div>
+                                        <p>{summary.description}</p>
+                                        {summary.issues && Array.isArray(summary.issues) && (
+                                          <div className="issues-list">
+                                            {summary.issues.map((issue, idx) => (
+                                              <div key={idx} className={`issue-item severity-${(issue.severity || 'unknown')?.toLowerCase()}`}>
+                                                <strong>{issue.severity || 'UNKNOWN'}:</strong> {issue.title || issue.description || issue.issue || issue.name}
+                                                {issue.description && issue.description !== (issue.title || issue.issue) && (
+                                                  <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+                                                    {issue.description}
+                                                  </div>
+                                                )}
+                                                {issue.business_impact && (
+                                                  <div className="business-impact-text" style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+                                                    {issue.business_impact}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )
+                                  }
+                                  
+                                  // If summary is just an object, try to extract issues from top level
+                                  if (Object.keys(summary).some(key => ['issues', 'description', 'critical', 'high', 'medium'].includes(key.toLowerCase()))) {
+                                    return (
+                                      <div>
+                                        {summary.description && <p>{summary.description}</p>}
+                                        {summary.issues && Array.isArray(summary.issues) && (
+                                          <div className="issues-list">
+                                            {summary.issues.map((issue, idx) => (
+                                              <div key={idx} className={`issue-item severity-${(issue.severity || 'unknown')?.toLowerCase()}`}>
+                                                <strong>{issue.severity || 'UNKNOWN'}:</strong> {issue.title || issue.description || issue.issue || issue.name}
+                                                {issue.business_impact && (
+                                                  <div className="business-impact-text" style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+                                                    {issue.business_impact}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )
+                                  }
+                                }
+                                
+                                // If parsed object itself has an issues array, format nicely
+                                if (parsed.issues && Array.isArray(parsed.issues)) {
+                                  return (
+                                    <div className="issues-list">
+                                      {parsed.issues.map((issue, idx) => (
+                                        <div key={idx} className={`issue-item severity-${(issue.severity || 'unknown')?.toLowerCase()}`}>
+                                          <strong>{issue.severity || 'UNKNOWN'}:</strong> {issue.title || issue.description || issue.issue || issue.name}
+                                          {issue.business_impact && (
+                                            <div className="business-impact-text" style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+                                              {issue.business_impact}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )
+                                }
+                                
+                                // Otherwise, show formatted JSON (better than raw, but should rarely happen)
+                                return (
+                                  <pre style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#f8f9fa', padding: '1rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                                    {JSON.stringify(parsed, null, 2)}
+                                  </pre>
+                                )
+                              }
+                            } catch (e) {
+                              // Not parseable JSON, display as plain text but try to clean it up
+                              const cleaned = displayText.replace(/^json\s*/i, '').trim()
+                              return (
+                                <pre style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
+                                  {cleaned}
+                                </pre>
+                              )
+                            }
+                          })()}
+                        </div>
+                      )}
+                      
+                      {proposeContent.summary.description && !proposeContent.summary.raw && (
+                        <div className="summary-description">
+                          <p>{proposeContent.summary.description}</p>
+                        </div>
+                      )}
+                      
+                      {proposeContent.summary.issues && Array.isArray(proposeContent.summary.issues) && (
+                        <div className="issues-list">
+                          {proposeContent.summary.issues.map((issue, index) => (
+                            <div key={index} className={`issue-item severity-${(issue.severity || 'unknown')?.toLowerCase()}`}>
+                              <strong>{issue.severity || 'UNKNOWN'}:</strong> {issue.title || issue.description || issue.name || JSON.stringify(issue)}
+                              {issue.business_impact && (
+                                <div className="business-impact-text" style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+                                  {issue.business_impact}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Handle summary object - display issues nicely if available */}
+                      {!proposeContent.summary.raw && !proposeContent.summary.description && !proposeContent.summary.issues && 
+                       typeof proposeContent.summary === 'object' && Object.keys(proposeContent.summary).length > 0 && (
+                        <div className="summary-structure">
+                          {Object.entries(proposeContent.summary).map(([key, value]) => {
+                            // Skip empty values
+                            if (!value || (Array.isArray(value) && value.length === 0)) {
+                              return null
+                            }
+                            
+                            // Display severity-based sections
+                            if (['critical', 'high', 'medium', 'low'].includes(key.toLowerCase())) {
+                              const severity = key.toUpperCase()
+                              return (
+                                <div key={key} className={`${key.toLowerCase()}-section`}>
+                                  <h5>{severity === 'CRITICAL' ? '🔴' : severity === 'HIGH' ? '🟠' : severity === 'MEDIUM' ? '🟡' : '🟢'} {severity}</h5>
+                                  {Array.isArray(value) ? (
+                                    <ul>
+                                      {value.map((item, idx) => (
+                                        <li key={idx}>
+                                          {typeof item === 'object' ? (
+                                            <>
+                                              {item.title || item.description || item.issue}
+                                              {item.business_impact && (
+                                                <div className="business-impact-text" style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+                                                  {item.business_impact}
+                                                </div>
+                                              )}
+                                            </>
+                                          ) : String(item)}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    <p>{typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}</p>
+                                  )}
+                                </div>
+                              )
+                            }
+                            
+                            // For other keys, show as formatted key-value
+                            return (
+                              <div key={key} className="summary-entry">
+                                <strong>{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong>
+                                {typeof value === 'object' ? (
+                                  <pre style={{ whiteSpace: 'pre-wrap', marginTop: '0.5rem' }}>
+                                    {JSON.stringify(value, null, 2)}
+                                  </pre>
+                                ) : (
+                                  <span> {String(value)}</span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                       
                       {proposeContent.summary.critical && (
                         <div className="critical-section">
                           <h5>🔴 CRITICAL</h5>
-                          <p>{proposeContent.summary.critical}</p>
+                          {Array.isArray(proposeContent.summary.critical) ? (
+                            <ul>
+                              {proposeContent.summary.critical.map((issue, index) => (
+                                <li key={index}>{typeof issue === 'object' ? JSON.stringify(issue, null, 2) : String(issue)}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p>{typeof proposeContent.summary.critical === 'object' ? JSON.stringify(proposeContent.summary.critical, null, 2) : String(proposeContent.summary.critical)}</p>
+                          )}
                         </div>
                       )}
                       
@@ -535,11 +873,11 @@ function App() {
                           {Array.isArray(proposeContent.summary.high) ? (
                             <ul>
                               {proposeContent.summary.high.map((issue, index) => (
-                                <li key={index}>{issue}</li>
+                                <li key={index}>{typeof issue === 'object' ? JSON.stringify(issue, null, 2) : String(issue)}</li>
                               ))}
                             </ul>
                           ) : (
-                            <p>{proposeContent.summary.high}</p>
+                            <p>{typeof proposeContent.summary.high === 'object' ? JSON.stringify(proposeContent.summary.high, null, 2) : String(proposeContent.summary.high)}</p>
                           )}
                         </div>
                       )}
@@ -550,11 +888,11 @@ function App() {
                           {Array.isArray(proposeContent.summary.medium) ? (
                             <ul>
                               {proposeContent.summary.medium.map((issue, index) => (
-                                <li key={index}>{issue}</li>
+                                <li key={index}>{typeof issue === 'object' ? JSON.stringify(issue, null, 2) : String(issue)}</li>
                               ))}
                             </ul>
                           ) : (
-                            <p>{proposeContent.summary.medium}</p>
+                            <p>{typeof proposeContent.summary.medium === 'object' ? JSON.stringify(proposeContent.summary.medium, null, 2) : String(proposeContent.summary.medium)}</p>
                           )}
                         </div>
                       )}
@@ -562,15 +900,7 @@ function App() {
                       {proposeContent.summary.low && (
                         <div className="low-section">
                           <h5>🟢 LOW Priority Issues</h5>
-                          <p>{proposeContent.summary.low}</p>
-                        </div>
-                      )}
-                      
-                      {proposeContent.summary.raw && (
-                        <div className="raw-content">
-                          <p style={{ whiteSpace: 'pre-line', lineHeight: '1.6' }}>
-                            {proposeContent.summary.raw}
-                          </p>
+                          <p>{typeof proposeContent.summary.low === 'object' ? JSON.stringify(proposeContent.summary.low, null, 2) : String(proposeContent.summary.low)}</p>
                         </div>
                       )}
                     </div>
@@ -581,23 +911,32 @@ function App() {
                       <h4>📋 Implementation Steps</h4>
                       {Array.isArray(proposeContent.implementationSteps) ? (
                         <ol>
-                          {proposeContent.implementationSteps.map((step, index) => (
-                            <li key={index}>{step}</li>
-                          ))}
+                          {proposeContent.implementationSteps.map((step, index) => {
+                            // Handle if step is an object
+                            const stepText = typeof step === 'object' && step !== null
+                              ? (step.text || step.description || step.step || JSON.stringify(step, null, 2))
+                              : String(step)
+                            return <li key={index}>{stepText}</li>
+                          })}
                         </ol>
-                      ) : typeof proposeContent.implementationSteps === 'object' ? (
+                      ) : typeof proposeContent.implementationSteps === 'object' && proposeContent.implementationSteps !== null ? (
                         // Handle object structure with keys like "VPC Connector", "Authentication", etc.
                         Object.entries(proposeContent.implementationSteps).map(([category, steps]) => (
                           <div key={category} className="implementation-category">
                             <h5>{category}</h5>
                             {Array.isArray(steps) ? (
                               <ol>
-                                {steps.map((step, index) => (
-                                  <li key={index}>{step}</li>
-                                ))}
+                                {steps.map((step, index) => {
+                                  const stepText = typeof step === 'object' && step !== null
+                                    ? (step.text || step.description || step.step || JSON.stringify(step, null, 2))
+                                    : String(step)
+                                  return <li key={index}>{stepText}</li>
+                                })}
                               </ol>
+                            ) : typeof steps === 'object' && steps !== null ? (
+                              <pre>{JSON.stringify(steps, null, 2)}</pre>
                             ) : (
-                              <p>{steps}</p>
+                              <p>{String(steps)}</p>
                             )}
                           </div>
                         ))
@@ -610,23 +949,32 @@ function App() {
                       <h4>🧪 Testing Recommendations</h4>
                       {Array.isArray(proposeContent.testingRecommendations) ? (
                         <ul>
-                          {proposeContent.testingRecommendations.map((rec, index) => (
-                            <li key={index}>{rec}</li>
-                          ))}
+                          {proposeContent.testingRecommendations.map((rec, index) => {
+                            // Handle if rec is an object
+                            const recText = typeof rec === 'object' && rec !== null
+                              ? (rec.text || rec.description || rec.recommendation || JSON.stringify(rec, null, 2))
+                              : String(rec)
+                            return <li key={index}>{recText}</li>
+                          })}
                         </ul>
-                      ) : typeof proposeContent.testingRecommendations === 'object' ? (
+                      ) : typeof proposeContent.testingRecommendations === 'object' && proposeContent.testingRecommendations !== null ? (
                         // Handle object structure with keys like "VPC Connector", "Authentication", etc.
                         Object.entries(proposeContent.testingRecommendations).map(([category, recommendations]) => (
                           <div key={category} className="testing-category">
                             <h5>{category}</h5>
                             {Array.isArray(recommendations) ? (
                               <ul>
-                                {recommendations.map((rec, index) => (
-                                  <li key={index}>{rec}</li>
-                                ))}
+                                {recommendations.map((rec, index) => {
+                                  const recText = typeof rec === 'object' && rec !== null
+                                    ? (rec.text || rec.description || rec.recommendation || JSON.stringify(rec, null, 2))
+                                    : String(rec)
+                                  return <li key={index}>{recText}</li>
+                                })}
                               </ul>
+                            ) : typeof recommendations === 'object' && recommendations !== null ? (
+                              <pre>{JSON.stringify(recommendations, null, 2)}</pre>
                             ) : (
-                              <p>{recommendations}</p>
+                              <p>{String(recommendations)}</p>
                             )}
                           </div>
                         ))
@@ -637,7 +985,7 @@ function App() {
                   {proposeContent.terraformCode && (
                     <div className="terraform-code">
                       <h4>📝 Generated Terraform Code</h4>
-                      <pre><code>{proposeContent.terraformCode}</code></pre>
+                      <pre><code>{formatTerraformCode(proposeContent.terraformCode)}</code></pre>
                     </div>
                   )}
                   
@@ -647,25 +995,45 @@ function App() {
                       {Object.entries(proposeContent.terraformCodeBlocks).map(([key, codeBlock]) => {
                         let displayCode = ''
                         let description = ''
+                        let severity = null
                         
                         if (typeof codeBlock === 'string') {
                           displayCode = codeBlock
                         } else if (codeBlock && typeof codeBlock === 'object') {
-                          if (codeBlock.code) {
-                            displayCode = codeBlock.code
-                          } else if (codeBlock.terraform_code || codeBlock.terraform) {
-                            displayCode = codeBlock.terraform_code || codeBlock.terraform
+                          // Handle different code block structures
+                          displayCode = codeBlock.code || codeBlock.terraform_code || codeBlock.terraform || codeBlock.text || ''
+                          description = codeBlock.description || codeBlock.desc || ''
+                          severity = codeBlock.severity || codeBlock.level || null
+                          
+                          // If code is still empty, try to stringify the whole object
+                          if (!displayCode && Object.keys(codeBlock).length > 0) {
+                            // Skip description and severity when stringifying
+                            const codeOnly = { ...codeBlock }
+                            delete codeOnly.description
+                            delete codeOnly.desc
+                            delete codeOnly.severity
+                            delete codeOnly.level
+                            if (Object.keys(codeOnly).length > 0) {
+                              displayCode = JSON.stringify(codeOnly, null, 2)
+                            }
                           }
-                          if (codeBlock.description) {
-                            description = codeBlock.description
-                          }
+                        }
+                        
+                        // Ensure displayCode is a string
+                        if (displayCode && typeof displayCode !== 'string') {
+                          displayCode = String(displayCode)
                         }
                         
                         return (
                           <div key={key} className="terraform-code-block">
-                            <h5>{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</h5>
+                            <h5>
+                              {severity && <span className={`severity-badge severity-${severity.toLowerCase()}`} style={{ marginRight: '0.5rem' }}>{severity}</span>}
+                              {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </h5>
                             {description && <p className="code-description">{description}</p>}
-                            {displayCode && <pre><code>{displayCode}</code></pre>}
+                            {displayCode && (
+                              <pre><code>{formatTerraformCode(displayCode)}</code></pre>
+                            )}
                           </div>
                         )
                       })}

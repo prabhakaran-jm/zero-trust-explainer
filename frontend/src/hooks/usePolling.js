@@ -8,19 +8,36 @@ import { useEffect, useRef } from 'react'
  */
 export default function usePolling(fn, intervalMs, enabled) {
   const timer = useRef(null)
+  const fnRef = useRef(fn)
+
+  // Keep fnRef up to date
+  useEffect(() => {
+    fnRef.current = fn
+  }, [fn])
 
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled) {
+      if (timer.current) {
+        clearInterval(timer.current)
+        timer.current = null
+      }
+      return
+    }
 
-    fn() // initial fetch
+    // Initial fetch
+    fnRef.current()
 
-    timer.current = setInterval(fn, intervalMs)
+    // Set up interval
+    timer.current = setInterval(() => {
+      fnRef.current()
+    }, intervalMs)
 
     return () => {
       if (timer.current) {
         clearInterval(timer.current)
+        timer.current = null
       }
     }
-  }, [fn, intervalMs, enabled])
+  }, [intervalMs, enabled]) // Removed fn from dependencies to avoid restarting on every render
 }
 

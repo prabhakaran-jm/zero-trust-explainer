@@ -567,10 +567,25 @@
   border-radius: 8px;
   padding: 1rem;
   overflow-x: auto;
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  white-space: pre-wrap;
+  overflow-y: auto;
+  font-family: 'Courier New', 'Consolas', 'Monaco', monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  white-space: pre;
+  tab-size: 2;
+  max-height: 600px;
+  word-wrap: normal;
+  word-break: normal;
+}
+
+.terraform-code code,
+.terraform-code-blocks code {
+  font-family: inherit;
+  font-size: inherit;
+  white-space: pre;
+  word-wrap: break-word;
+  word-break: break-all;
+  display: block;
 }
 
 .terraform-code-blocks {
