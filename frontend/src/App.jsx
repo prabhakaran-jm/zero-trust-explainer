@@ -40,15 +40,24 @@ function App() {
     try {
       const data = await api.listJobs()
       // Sort jobs by first_finding_at descending (newest first)
+      // Jobs without findings (newly created) should appear at the top
       const sortedJobs = (data.jobs || []).sort((a, b) => {
-        if (!a.first_finding_at && !b.first_finding_at) return 0
-        if (!a.first_finding_at) return 1
-        if (!b.first_finding_at) return -1
+        // If both have no findings, check created_at or job_id
+        if (!a.first_finding_at && !b.first_finding_at) {
+          // Newer jobs first based on job_id (which includes timestamp) or created_at
+          const aCreated = a.created_at || a.job_id || ''
+          const bCreated = b.created_at || b.job_id || ''
+          return bCreated.localeCompare(aCreated)
+        }
+        // Jobs without findings go first
+        if (!a.first_finding_at) return -1
+        if (!b.first_finding_at) return 1
         return new Date(b.first_finding_at) - new Date(a.first_finding_at)
       })
       setJobs(sortedJobs)
+      console.log('Auto-refresh: Jobs list updated', sortedJobs.length)
     } catch (err) {
-      console.error('Error loading jobs:', err)
+      console.error('Error in fetchJobs:', err)
     }
   }, [])
 
@@ -93,10 +102,18 @@ function App() {
       setError(null)
       const data = await api.listJobs()
       // Sort jobs by first_finding_at descending (newest first)
+      // Jobs without findings (newly created) should appear at the top
       const sortedJobs = (data.jobs || []).sort((a, b) => {
-        if (!a.first_finding_at && !b.first_finding_at) return 0
-        if (!a.first_finding_at) return 1
-        if (!b.first_finding_at) return -1
+        // If both have no findings, check created_at or job_id
+        if (!a.first_finding_at && !b.first_finding_at) {
+          // Newer jobs first based on job_id (which includes timestamp) or created_at
+          const aCreated = a.created_at || a.job_id || ''
+          const bCreated = b.created_at || b.job_id || ''
+          return bCreated.localeCompare(aCreated)
+        }
+        // Jobs without findings go first
+        if (!a.first_finding_at) return -1
+        if (!b.first_finding_at) return 1
         return new Date(b.first_finding_at) - new Date(a.first_finding_at)
       })
       setJobs(sortedJobs)
@@ -137,24 +154,30 @@ function App() {
       // Update URL hash for deep linking
       window.history.replaceState(null, '', '#jobs')
       
-      // Start auto-refresh polling for ~20 seconds
-      setAutoRefresh(true)
+      // Scan submission is complete, stop loading spinner
       setLoading(false)
       
-      // Immediately refresh the jobs list (polling will continue automatically)
-      // This ensures we see the new job as soon as it appears in BigQuery
-      loadJobs()
-      
-      // Also fetch again after delays to catch jobs that take time to process
+      // Start auto-refresh polling for ~20 seconds (polling every 3s)
+      setAutoRefresh(true)
+
+      // Immediately refresh the jobs list using fetchJobs (not loadJobs)
+      // Note: The job may not appear in BigQuery immediately, so polling will catch it
+      fetchJobs()
+
+      // Additional fetches at intervals to ensure we catch the job when it appears
+      // The polling hook will also call fetchJobs every 3s, but these give extra chances
       setTimeout(() => {
+        console.log('Auto-refresh: Fetching jobs at 2s')
         fetchJobs()
       }, 2000)
-      
+
       setTimeout(() => {
+        console.log('Auto-refresh: Fetching jobs at 5s')
         fetchJobs()
       }, 5000)
-      
+
       setTimeout(() => {
+        console.log('Auto-refresh: Fetching jobs at 10s')
         fetchJobs()
       }, 10000)
     } catch (err) {
