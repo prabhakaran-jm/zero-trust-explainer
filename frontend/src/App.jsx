@@ -25,6 +25,7 @@ function App() {
   const [currentExplanation, setCurrentExplanation] = useState(null)
   const [showProposeModal, setShowProposeModal] = useState(false)
   const [proposeContent, setProposeContent] = useState(null)
+  const [proposeJobId, setProposeJobId] = useState(null) // Track job ID for retry
   const [aiLoading, setAiLoading] = useState({ explain: null, propose: null })
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [findingsError, setFindingsError] = useState(null)
@@ -221,7 +222,15 @@ function App() {
                                       proposals.testing_recommendations[0] === "Test thoroughly" ||
                                       proposals.testing_recommendations[0] === "Test manually")
           
-          return hasFallbackTerraform && hasFallbackSteps && hasFallbackTesting
+          // Also check if summary is raw JSON string (not parsed)
+          const hasRawJsonSummary = proposals.summary && typeof proposals.summary === 'string' && 
+                                    (proposals.summary.trim().startsWith('{') || proposals.summary.trim().startsWith('"'))
+          
+          // Check if ai_proposal exists but no structured data
+          const hasOnlyRawAiProposal = proposals.ai_proposal && typeof proposals.ai_proposal === 'string' &&
+                                       !proposals.implementation_steps && !proposals.terraform_code && !proposals.testing_recommendations
+          
+          return (hasFallbackTerraform && hasFallbackSteps && hasFallbackTesting) || hasRawJsonSummary || hasOnlyRawAiProposal
         }
         
         const isFallback = isFallbackResponse(result.ai_proposals)
@@ -235,20 +244,21 @@ function App() {
             content.summary = { 
               raw: result.ai_proposals.ai_proposal,
               isFallback: true,
-              message: '⚠️ AI response was partially parsed. Showing raw summary below.'
+              message: 'AI response was partially parsed. The analysis may still be processing in the background.'
             }
           } else if (normalized && normalized.summary) {
             // Use normalized summary if available
             content.summary = normalized.summary
             if (content.summary.raw) {
               content.summary.isFallback = true
-              content.summary.message = '⚠️ AI response format was unexpected. Showing content below.'
+              content.summary.message = 'AI response format was unexpected. The analysis may still be processing.'
             }
           } else {
             // Last resort - show error message
             content.summary = { 
-              raw: 'The AI response could not be parsed. This may be due to:\n- Network issues\n- AI service temporarily unavailable\n- Response format issues\n\nPlease try again or check the full report link below.',
-              isFallback: true
+              raw: 'The AI response could not be parsed. The analysis may still be processing in the background. Please click "AI Propose" again to retry.',
+              isFallback: true,
+              message: 'AI processing may not be complete yet.'
             }
           }
           
@@ -291,6 +301,7 @@ function App() {
       }
       
       setProposeContent(content)
+      setProposeJobId(jobId) // Store job ID for retry
       setShowProposeModal(true)
     } catch (err) {
       notify.err('Failed to trigger propose: ' + err.message)
@@ -584,16 +595,63 @@ function App() {
                         <div className="security-summary">
                           <h4>📊 Security Summary</h4>
                           
-                          {proposeContent.summary.isFallback && proposeContent.summary.message && (
-                            <div className="fallback-warning" style={{ 
+                          {proposeContent.summary.isFallback && (
+                            <div className="fallback-warning-action" style={{ 
                               background: '#fff3cd', 
-                              border: '1px solid #ffc107', 
+                              border: '2px solid #ffc107', 
                               borderRadius: '8px', 
-                              padding: '0.75rem', 
-                              marginBottom: '1rem',
-                              fontSize: '0.9rem'
+                              padding: '1rem', 
+                              marginBottom: '1.5rem',
+                              fontSize: '0.95rem',
+                              lineHeight: '1.6'
                             }}>
-                              <strong>⚠️ Notice:</strong> {proposeContent.summary.message}
+                              <div style={{ marginBottom: '0.75rem' }}>
+                                <strong style={{ fontSize: '1.05rem', color: '#856404' }}>⚠️ AI Processing Incomplete</strong>
+                              </div>
+                              <div style={{ marginBottom: '0.75rem', color: '#856404' }}>
+                                {proposeContent.summary.message || 'The AI analysis may still be processing. Raw output is shown below.'}
+                              </div>
+                              <div style={{ 
+                                background: '#fff', 
+                                borderRadius: '6px', 
+                                padding: '0.75rem', 
+                                border: '1px solid #ffc107',
+                                marginBottom: '0.75rem'
+                              }}>
+                                <strong style={{ color: '#856404' }}>💡 For Judges:</strong> If you see raw JSON output, the AI job may still be processing. 
+                                <strong> Click "AI Propose" again</strong> on the job card to get the formatted analysis.
+                              </div>
+                              {proposeJobId && (
+                                <button
+                                  onClick={() => {
+                                    setShowProposeModal(false)
+                                    setTimeout(() => {
+                                      handlePropose(proposeJobId)
+                                    }, 300)
+                                  }}
+                                  style={{
+                                    background: '#ffc107',
+                                    color: '#856404',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '0.5rem 1rem',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                  }}
+                                  onMouseOver={(e) => {
+                                    e.currentTarget.style.background = '#ffb300'
+                                    e.currentTarget.style.transform = 'scale(1.02)'
+                                  }}
+                                  onMouseOut={(e) => {
+                                    e.currentTarget.style.background = '#ffc107'
+                                    e.currentTarget.style.transform = 'scale(1)'
+                                  }}
+                                >
+                                  🔄 Retry AI Propose
+                                </button>
+                              )}
                             </div>
                           )}
                           
