@@ -28,6 +28,8 @@ User Browser → Frontend (React) → Backend API (FastAPI) → AI Studio (Gemin
                                                         → Propose Job → Cloud Storage
 ```
 
+**Note**: The Scan Processor can optionally run as a **Cloud Run Worker Pool** for continuous processing instead of an on-demand Job. See [Architecture Options](#architecture-options) below for details on when to use each approach.
+
 ### AI-Powered Backend (FastAPI + Gemini Pro)
 - **POST /scan** - Publishes scan requests to Pub/Sub
 - **GET /findings/{job_id}** - Retrieves findings from BigQuery with optional severity filtering
@@ -46,7 +48,8 @@ User Browser → Frontend (React) → Backend API (FastAPI) → AI Studio (Gemin
 ### Infrastructure (Terraform)
 - **Artifact Registry**: Container image repository
 - **Cloud Run Services**: Backend API and Frontend
-- **Cloud Run Job**: 🤖 AI-powered fix proposal execution
+- **Cloud Run Jobs**: Scan Processor Job (on-demand) and Propose Job (AI-powered fix proposal execution)
+- **Cloud Run Worker Pools**: Alternative option for continuous scan processing (see Architecture Options below)
 - **Pub/Sub**: Scan request queue
 - **BigQuery**: Findings data warehouse
 - **GCS Bucket**: Report storage with signed URLs
@@ -422,6 +425,71 @@ npm run dev
 ```
 
 3. Open http://localhost:3000 in your browser
+
+## Architecture Options
+
+### Scan Processor: Cloud Run Job vs Worker Pool
+
+The project currently uses **Cloud Run Jobs** for scan processing (on-demand execution). **Cloud Run Worker Pools** are available as an alternative for continuous processing workloads.
+
+#### Current Implementation: Cloud Run Job (Recommended for Most Cases)
+
+**How it works:**
+- Scan Processor runs as a Cloud Run Job
+- Triggered on-demand via REST API when scan is submitted
+- Pay only when job is executing
+- Automatically scales to zero when idle
+
+**Best for:**
+- ✅ Sporadic scan workloads (< 50 scans/day)
+- ✅ User-initiated scans via API
+- ✅ Cost-effective for on-demand processing
+- ✅ Simple deployment and management
+
+**Cost Model:**
+- Pay per execution time (request-based)
+- Scale to zero when idle
+- Optimal for sporadic workloads
+
+#### Alternative: Cloud Run Worker Pool (For High-Volume Workloads)
+
+**How it would work:**
+- Scan Processor runs as a Worker Pool
+- Always-on instances continuously pull from Pub/Sub
+- Process scans as they arrive in the queue
+- Lower price per instance hour for continuous workloads
+
+**Best for:**
+- ✅ High-volume scanning (50+ scans/day continuously)
+- ✅ Scheduled/automated scanning workloads
+- ✅ Continuous monitoring scenarios
+- ✅ Predictable, always-on processing requirements
+
+**When to Consider:**
+- **High Scan Volume**: Expecting moderate-to-high scan frequency (50+ scans/day)
+- **Continuous Processing**: Need always-on processing with minimal latency
+- **Cost Optimization**: Steady workload where Worker Pool pricing is more economical
+- **Scheduled Scans**: Implementing automated/scheduled scanning features
+
+**Cost Comparison:**
+```
+Low Volume (< 50 scans/day):
+  - Cloud Run Job: More cost-effective (pay per execution)
+  - Worker Pool: Higher cost (always-on instances)
+
+High Volume (> 50 scans/day):
+  - Cloud Run Job: Higher cost (many executions)
+  - Worker Pool: More cost-effective (lower instance price)
+  
+Break-even: ~50-60 scans/day
+```
+
+**Trade-offs:**
+- **Worker Pool Pros**: Lower per-hour cost for continuous workloads, predictable latency, always-on availability
+- **Worker Pool Cons**: Pay for idle time (after 15 min), manual scaling, not optimal for sporadic workloads
+
+**Implementation Note:**
+The current implementation uses Cloud Run Jobs, which is optimal for most use cases. If you expect high scan volume or want to implement continuous monitoring, Worker Pools can be configured by deploying the scan processor as a Worker Pool instead of a Job.
 
 ## Security Considerations
 

@@ -1,0 +1,25 @@
+graph TB
+    User[👤 User Browser]
+    
+    subgraph "Cloud Run Service"
+        Frontend[🌐 Frontend<br/>React/Vite UI]
+        Backend[⚙️ Backend API<br/>FastAPI + Gemini Pro]
+    end
+    
+    Gemini[🤖 Gemini Pro<br/>Google AI Studio]
+    
+    %% Main flow
+    User -->|"Web Request"| Frontend
+    Frontend -->|REST API| Backend
+    Backend -->|"Prompts"| Gemini
+    Gemini -->|AI Responses| Backend
+    
+    %% Styling - Google Cloud colors
+    classDef userStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:3px
+    classDef cloudRunStyle fill:#4285F4,stroke:#1A73E8,stroke-width:3px,color:#fff
+    classDef aiStyle fill:#34A853,stroke:#188038,stroke-width:3px,color:#fff
+    
+    class User userStyle
+    class Frontend,Backend cloudRunStyle
+    class Gemini aiStyle
+

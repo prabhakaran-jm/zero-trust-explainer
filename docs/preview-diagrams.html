@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zero-Trust Explainer - Architecture Diagrams</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #1976D2;
+            border-bottom: 3px solid #4285F4;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #424242;
+            margin-top: 40px;
+            padding: 10px;
+            background: white;
+            border-left: 4px solid #4285F4;
+        }
+        .diagram-container {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .diagram-description {
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+        .mermaid {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏗️ Zero-Trust Explainer - Architecture Diagrams</h1>
+    
+    <h2>1. Minimal Diagram (Recommended for Submission)</h2>
+    <div class="diagram-container">
+        <div class="mermaid">
+graph TB
+    User[👤 User Browser]
+    
+    subgraph "Cloud Run Service"
+        Frontend[🌐 Frontend<br/>React/Vite UI]
+        Backend[⚙️ Backend API<br/>FastAPI + Gemini Pro]
+    end
+    
+    Gemini[🤖 Gemini Pro<br/>Google AI Studio]
+    
+    %% Main flow
+    User -->|"Web Request"| Frontend
+    Frontend -->|REST API| Backend
+    Backend -->|"Prompts"| Gemini
+    Gemini -->|AI Responses| Backend
+    
+    %% Styling - Google Cloud colors
+    classDef userStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:3px
+    classDef cloudRunStyle fill:#4285F4,stroke:#1A73E8,stroke-width:3px,color:#fff
+    classDef aiStyle fill:#34A853,stroke:#188038,stroke-width:3px,color:#fff
+    
+    class User userStyle
+    class Frontend,Backend cloudRunStyle
+    class Gemini aiStyle
+        </div>
+        <div class="diagram-description">
+            <strong>Use this for submission:</strong> Shows Cloud Run Service with Frontend and Backend, plus Gemini Pro integration.
+            Clean and simple architecture diagram.
+        </div>
+    </div>
+
+    <h2>2. Full Architecture Diagram (All Services)</h2>
+    <div class="diagram-container">
+        <div class="mermaid">
+graph TB
+    subgraph "User"
+        User[👤 User Browser]
+    end
+
+    subgraph "Cloud Run Service"
+        Frontend[🌐 Frontend<br/>React/Vite UI]
+        Backend[⚙️ Backend API<br/>FastAPI + Gemini Pro]
+    end
+
+    subgraph "Google AI Studio"
+        Gemini[🤖 Gemini Pro<br/>AI Analysis]
+    end
+
+    subgraph "Google Cloud Services"
+        PubSub[💬 Pub/Sub<br/>Scan Requests]
+        BigQuery[🗄️ BigQuery<br/>Findings Storage]
+        GCS[☁️ Cloud Storage<br/>Reports]
+    end
+
+    subgraph "Cloud Run Jobs"
+        ScanJob[📊 Scan Processor Job]
+        ProposeJob[📝 Propose Job<br/>AI Report Gen]
+    end
+
+    %% Main flow
+    User -->|"Web Request"| Frontend
+    Frontend -->|REST API| Backend
+    Backend -->|"Prompts"| Gemini
+    Gemini -->|AI Responses| Backend
+    
+    %% Data flows
+    Backend -->|Publish| PubSub
+    PubSub -->|Trigger| ScanJob
+    ScanJob -->|Write| BigQuery
+    Backend -->|Query| BigQuery
+    Backend -->|Trigger| ProposeJob
+    ProposeJob -->|Read| BigQuery
+    ProposeJob -->|Prompts| Gemini
+    ProposeJob -->|Upload| GCS
+    
+    %% Styling - Google Cloud colors
+    classDef userStyle fill:#E3F2FD,stroke:#1976D2,stroke-width:3px
+    classDef cloudRunStyle fill:#4285F4,stroke:#1A73E8,stroke-width:3px,color:#fff
+    classDef aiStyle fill:#34A853,stroke:#188038,stroke-width:3px,color:#fff
+    classDef dataStyle fill:#F4B400,stroke:#F57F17,stroke-width:2px
+    classDef jobStyle fill:#EA4335,stroke:#C5221F,stroke-width:2px,color:#fff
+    
+    class User userStyle
+    class Frontend,Backend cloudRunStyle
+    class Gemini aiStyle
+    class PubSub,BigQuery,GCS dataStyle
+    class ScanJob,ProposeJob jobStyle
+        </div>
+        <div class="diagram-description">
+            <strong>Complete architecture:</strong> Shows all components including Pub/Sub, BigQuery, Cloud Storage, and Cloud Run Jobs.
+            Use this if you want to show the full system architecture.
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true
+            }
+        });
+    </script>
+
+    <div style="margin-top: 40px; padding: 20px; background: white; border-radius: 8px;">
+        <h3 style="color: #1976D2;">📝 How to Export</h3>
+        <ol>
+            <li><strong>Right-click</strong> on the diagram</li>
+            <li>Select <strong>"Inspect"</strong> or <strong>"View Page Source"</strong></li>
+            <li>Copy the SVG code from the rendered diagram</li>
+            <li>Use an online SVG to PNG converter or</li>
+            <li>Use <a href="https://mermaid.live/" target="_blank">Mermaid Live Editor</a> to export as PNG</li>
+        </ol>
+        <p><strong>Better option:</strong> Use <a href="https://mermaid.live/" target="_blank">Mermaid Live Editor</a> and paste the content from the `.mmd` files to export as PNG/SVG.</p>
+    </div>
+</body>
+</html>
+
