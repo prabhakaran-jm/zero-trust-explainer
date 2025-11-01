@@ -37,8 +37,11 @@ function App() {
 
   // Auto-refresh polling after scan
   const fetchJobs = useCallback(async () => {
+    console.log('[fetchJobs] Starting fetch at', new Date().toISOString())
     try {
       const data = await api.listJobs()
+      console.log('[fetchJobs] Received', data.jobs?.length || 0, 'jobs from API')
+
       // Sort jobs by first_finding_at descending (newest first)
       // Jobs without findings (newly created) should appear at the top
       const sortedJobs = (data.jobs || []).sort((a, b) => {
@@ -54,10 +57,11 @@ function App() {
         if (!b.first_finding_at) return 1
         return new Date(b.first_finding_at) - new Date(a.first_finding_at)
       })
+
       setJobs(sortedJobs)
-      console.log('Auto-refresh: Jobs list updated', sortedJobs.length)
+      console.log('[fetchJobs] Updated state with', sortedJobs.length, 'sorted jobs')
     } catch (err) {
-      console.error('Error in fetchJobs:', err)
+      console.error('[fetchJobs] Error:', err)
     }
   }, [])
 
@@ -66,16 +70,26 @@ function App() {
   // Debug logging for auto-refresh
   useEffect(() => {
     if (autoRefresh) {
-      console.log('Auto-refresh enabled, polling every 3s for 20s')
+      console.log('[App] ✅ Auto-refresh ENABLED - polling every 3s for 2.5 minutes')
+      console.log('[App] Current timestamp:', new Date().toISOString())
+      console.log('[App] Note: BigQuery results can take up to 2 minutes to appear')
     } else {
-      console.log('Auto-refresh disabled')
+      console.log('[App] ⛔ Auto-refresh DISABLED')
     }
   }, [autoRefresh])
 
   useEffect(() => {
     if (autoRefresh) {
-      const timer = setTimeout(() => setAutoRefresh(false), 20000) // Stop after 20s
-      return () => clearTimeout(timer)
+      const durationMs = 150000 // 2.5 minutes (150 seconds)
+      console.log('[App] Setting up auto-stop timer for', durationMs / 1000, 'seconds')
+      const timer = setTimeout(() => {
+        console.log('[App] Polling duration elapsed - stopping auto-refresh')
+        setAutoRefresh(false)
+      }, durationMs)
+      return () => {
+        console.log('[App] Cleaning up auto-stop timer')
+        clearTimeout(timer)
+      }
     }
   }, [autoRefresh])
 
@@ -156,30 +170,15 @@ function App() {
       
       // Scan submission is complete, stop loading spinner
       setLoading(false)
-      
-      // Start auto-refresh polling for ~20 seconds (polling every 3s)
+
+      console.log('[handleScanSubmit] Scan submitted successfully, job_id:', jobId)
+      console.log('[handleScanSubmit] Enabling auto-refresh polling...')
+      console.log('[handleScanSubmit] Will poll for 2.5 minutes (BigQuery results take up to 2 mins)')
+
+      // Start auto-refresh polling for 2.5 minutes (polling every 3s)
+      // BigQuery can take up to 2 minutes to show results, so we need longer polling
+      // The usePolling hook will call fetchJobs immediately and then every 3s
       setAutoRefresh(true)
-
-      // Immediately refresh the jobs list using fetchJobs (not loadJobs)
-      // Note: The job may not appear in BigQuery immediately, so polling will catch it
-      fetchJobs()
-
-      // Additional fetches at intervals to ensure we catch the job when it appears
-      // The polling hook will also call fetchJobs every 3s, but these give extra chances
-      setTimeout(() => {
-        console.log('Auto-refresh: Fetching jobs at 2s')
-        fetchJobs()
-      }, 2000)
-
-      setTimeout(() => {
-        console.log('Auto-refresh: Fetching jobs at 5s')
-        fetchJobs()
-      }, 5000)
-
-      setTimeout(() => {
-        console.log('Auto-refresh: Fetching jobs at 10s')
-        fetchJobs()
-      }, 10000)
     } catch (err) {
       notify.err('Failed to schedule scan: ' + err.message)
       setError('Failed to submit scan: ' + err.message)
