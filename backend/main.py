@@ -320,25 +320,62 @@ class AIService:
             - recommendations: Strategic recommendations
             """
             
+            logger.info(f"Generating AI summary for {len(findings)} findings")
             response = self.model.generate_content(prompt)
             
             if not response or not hasattr(response, 'text') or not response.text:
                 logger.error("Empty response from Gemini API for summary")
                 return self._generate_fallback_summary(findings)
             
+            logger.info(f"Gemini summary response: {response.text[:200]}...")  # Log first 200 chars
+            
             try:
-                ai_data = json.loads(response.text)
+                # Remove markdown code blocks if present (like AI Propose does)
+                text_to_parse = response.text.replace("```json\n", "").replace("```json\n", "").replace("```\n", "").replace("```", "").strip()
+                ai_data = json.loads(text_to_parse)
+                
+                logger.info(f"Successfully parsed AI summary with keys: {list(ai_data.keys())}")
             except json.JSONDecodeError as e:
                 logger.warning(f"JSON parsing failed for summary: {e}")
-                ai_data = {
-                    "executive_summary": response.text,
-                    "risk_overview": "Manual review required",
-                    "top_concerns": ["Review all findings manually"],
-                    "compliance_status": "Assessment required",
-                    "remediation_roadmap": "Manual planning needed",
-                    "business_impact": "Medium",
-                    "recommendations": ["Conduct manual security review"]
-                }
+                logger.warning(f"Response text length: {len(response.text)}")
+                logger.warning(f"Response text (first 500 chars): {response.text[:500]}")
+                
+                # Try to extract JSON from response text
+                try:
+                    # Try to find JSON object in the response
+                    json_match = response.text
+                    # Remove markdown if present
+                    json_match = json_match.replace("```json\n", "").replace("```json\n", "").replace("```\n", "").replace("```", "").strip()
+                    # Try to find JSON object with balanced braces
+                    brace_count = 0
+                    start_idx = -1
+                    for i, char in enumerate(json_match):
+                        if char == '{':
+                            if start_idx == -1:
+                                start_idx = i
+                            brace_count += 1
+                        elif char == '}':
+                            brace_count -= 1
+                            if brace_count == 0 and start_idx != -1:
+                                json_str = json_match[start_idx:i+1]
+                                ai_data = json.loads(json_str)
+                                logger.info(f"Successfully extracted JSON from response")
+                                break
+                    else:
+                        # No valid JSON found, use fallback
+                        raise json.JSONDecodeError("No valid JSON found", json_match, 0)
+                except (json.JSONDecodeError, ValueError) as extract_error:
+                    logger.warning(f"Could not extract JSON from response: {extract_error}")
+                    # Use the raw response text but with fallback for other fields
+                    ai_data = {
+                        "executive_summary": response.text[:1000],  # Limit length
+                        "risk_overview": "Unable to parse AI response - see executive summary",
+                        "top_concerns": ["Review findings manually"],
+                        "compliance_status": "Assessment required",
+                        "remediation_roadmap": "Manual planning needed",
+                        "business_impact": "Medium",
+                        "recommendations": ["Conduct manual security review"]
+                    }
             
             return {
                 "executive_summary": ai_data.get("executive_summary", "Summary generation failed"),
@@ -355,6 +392,10 @@ class AIService:
             
         except Exception as e:
             logger.error(f"AI summary generation failed: {e}")
+            logger.error(f"Error type: {type(e).__name__}")
+            logger.error(f"Error details: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return self._generate_fallback_summary(findings)
     
     def _generate_fallback_summary(self, findings: List[Finding]) -> Dict[str, Any]:
@@ -972,11 +1013,15 @@ async def get_ai_summary(job_id: str):
         # Generate AI summary
         summary = ai_service.generate_scan_summary(findings_objects)
         
+        # Use the actual ai_powered status from the summary
+        # The summary object will have ai_powered: False if it's fallback content
+        ai_powered = summary.get("ai_powered", False)
+        
         return {
             "job_id": job_id,
             "summary": summary,
             "total_findings": len(findings_objects),
-            "ai_powered": True
+            "ai_powered": ai_powered
         }
         
     except HTTPException:

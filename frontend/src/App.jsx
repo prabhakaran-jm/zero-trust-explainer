@@ -645,15 +645,75 @@ function App() {
             <div className="modal-body">
               {(() => {
                 // Extract summary object - backend returns { summary: {...}, ... }
-                const summaryData = currentSummary.summary || currentSummary
+                let summaryData = currentSummary.summary || currentSummary
+                
+                // Handle case where summary might be a JSON string
+                if (typeof summaryData === 'string') {
+                  try {
+                    // Try to parse JSON string
+                    let cleaned = summaryData.trim()
+                    // Remove markdown code blocks if present
+                    cleaned = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/g, '').trim()
+                    // Try to find JSON object in string
+                    const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+                    if (jsonMatch) {
+                      summaryData = JSON.parse(jsonMatch[0])
+                    } else {
+                      summaryData = JSON.parse(cleaned)
+                    }
+                  } catch (e) {
+                    console.error('Failed to parse summary JSON string:', e)
+                    return (
+                      <div className="error-message">
+                        <p>Failed to parse summary data. Please try again.</p>
+                        <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.875rem', background: '#f8f9fa', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+                          {String(summaryData).substring(0, 500)}
+                        </pre>
+                      </div>
+                    )
+                  }
+                }
+                
                 const aiModel = summaryData.ai_model || currentSummary.ai_model
-                const aiPowered = summaryData.ai_powered !== undefined ? summaryData.ai_powered : currentSummary.ai_powered
+                const aiPowered = summaryData.ai_powered !== undefined ? summaryData.ai_powered : (currentSummary.ai_powered !== undefined ? currentSummary.ai_powered : true)
+                
+                // Check if this is fallback content (has generic placeholder text)
+                const isFallback = summaryData.ai_model === 'fallback-analysis' || 
+                                   (summaryData.compliance_status && summaryData.compliance_status.toLowerCase().includes('manual'))
+                
+                // Check if we have any content to display
+                const hasContent = summaryData.executive_summary || 
+                                   summaryData.risk_overview || 
+                                   summaryData.top_concerns?.length > 0 ||
+                                   summaryData.compliance_status ||
+                                   summaryData.remediation_roadmap ||
+                                   summaryData.business_impact ||
+                                   summaryData.recommendations?.length > 0 ||
+                                   summaryData.severity_counts
+                
+                if (!hasContent) {
+                  return (
+                    <div className="empty-state" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                      <p>No summary data available. Please try again or check if AI is enabled.</p>
+                      {summaryData && typeof summaryData === 'object' && (
+                        <pre style={{ marginTop: '1rem', fontSize: '0.875rem', background: '#f8f9fa', padding: '1rem', borderRadius: '8px', textAlign: 'left', overflow: 'auto', maxHeight: '200px' }}>
+                          {JSON.stringify(summaryData, null, 2)}
+                        </pre>
+                      )}
+                    </div>
+                  )
+                }
                 
                 return (
                   <>
                     {aiPowered && (
                       <div className="ai-badge" style={{ marginBottom: '1rem' }}>
                         <span>Powered by {aiModel || 'AI'}</span>
+                        {isFallback && (
+                          <span style={{ marginLeft: '0.5rem', fontSize: '0.875rem', opacity: 0.8 }}>
+                            (Fallback - AI analysis may not be available)
+                          </span>
+                        )}
                       </div>
                     )}
 
