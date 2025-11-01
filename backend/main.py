@@ -943,18 +943,39 @@ async def get_ai_summary(job_id: str):
     """
     try:
         # Get findings for the job
-        findings = await get_findings(job_id)
+        findings_response = await get_findings(job_id)
         
-        if not findings:
+        if not findings_response or not findings_response.get("findings"):
             raise HTTPException(status_code=404, detail=f"No findings found for job {job_id}")
         
+        # Extract findings list from response
+        findings_dicts = findings_response.get("findings", [])
+        
+        if not findings_dicts:
+            raise HTTPException(status_code=404, detail=f"No findings found for job {job_id}")
+        
+        # Convert dictionaries to Finding objects
+        findings_objects = []
+        for finding_dict in findings_dicts:
+            findings_objects.append(Finding(
+                id=finding_dict.get("id", ""),
+                job_id=finding_dict.get("job_id", job_id),
+                severity=finding_dict.get("severity", ""),
+                resource_type=finding_dict.get("resource_type", ""),
+                resource_name=finding_dict.get("resource_name", ""),
+                issue_description=finding_dict.get("issue_description", ""),
+                recommendation=finding_dict.get("recommendation", ""),
+                risk_score=finding_dict.get("risk_score"),  # Optional
+                created_at=finding_dict.get("created_at", "")
+            ))
+        
         # Generate AI summary
-        summary = ai_service.generate_scan_summary(findings)
+        summary = ai_service.generate_scan_summary(findings_objects)
         
         return {
             "job_id": job_id,
             "summary": summary,
-            "total_findings": len(findings),
+            "total_findings": len(findings_objects),
             "ai_powered": True
         }
         
