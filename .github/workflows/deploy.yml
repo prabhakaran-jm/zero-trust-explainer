@@ -89,6 +89,21 @@ jobs:
             TF_PLAN_CMD="$TF_PLAN_CMD -var=\"gemini_api_key=${{ secrets.GEMINI_API_KEY }}\""
           fi
           
+          # Add quick link URLs from GitHub Secrets (optional)
+          # Note: GitHub Secrets should be added in repository Settings → Secrets and variables → Actions
+          if [ -n "${{ secrets.DEMO_VIDEO_URL }}" ]; then
+            TF_PLAN_CMD="$TF_PLAN_CMD -var=\"demo_video_url=${{ secrets.DEMO_VIDEO_URL }}\""
+          fi
+          if [ -n "${{ secrets.REPO_URL }}" ]; then
+            TF_PLAN_CMD="$TF_PLAN_CMD -var=\"repo_url=${{ secrets.REPO_URL }}\""
+          fi
+          if [ -n "${{ secrets.ARCH_URL }}" ]; then
+            TF_PLAN_CMD="$TF_PLAN_CMD -var=\"arch_url=${{ secrets.ARCH_URL }}\""
+          fi
+          if [ -n "${{ secrets.AI_STUDIO_URL }}" ]; then
+            TF_PLAN_CMD="$TF_PLAN_CMD -var=\"ai_studio_url=${{ secrets.AI_STUDIO_URL }}\""
+          fi
+          
           # Complete command and save plan
           TF_PLAN_CMD="$TF_PLAN_CMD -out=tfplan"
           
