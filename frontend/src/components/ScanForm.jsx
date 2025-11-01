@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { notify } from '../utils/notify'
+import Spinner from './Spinner'
 import './ScanForm.css'
 
 function ScanForm({ onSubmit, loading }) {
@@ -9,7 +11,7 @@ function ScanForm({ onSubmit, loading }) {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!serviceName) {
-      alert('Service name is required')
+      notify.err('Service name is required')
       return
     }
     onSubmit(serviceName, region, projectId)
@@ -59,7 +61,13 @@ function ScanForm({ onSubmit, loading }) {
       </div>
 
       <button type="submit" className="submit-btn" disabled={loading}>
-        {loading ? 'Submitting...' : '🔍 Start Scan'}
+        {loading ? (
+          <>
+            <Spinner size="14px" /> Submitting...
+          </>
+        ) : (
+          '🔍 Start Scan'
+        )}
       </button>
     </form>
   )

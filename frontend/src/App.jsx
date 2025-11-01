@@ -1,9 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 import ScanForm from './components/ScanForm'
 import JobCard from './components/JobCard'
 import FindingsList from './components/FindingsList'
+import HealthChip from './components/HealthChip'
+import Spinner from './components/Spinner'
 import { api } from './services/api'
+import { notify } from './utils/notify'
+import { copyToClipboard } from './utils/clipboard'
+import usePolling from './hooks/usePolling'
 
 function App() {
   const [jobs, setJobs] = useState([])
@@ -18,11 +23,32 @@ function App() {
   const [showProposeModal, setShowProposeModal] = useState(false)
   const [proposeContent, setProposeContent] = useState(null)
   const [aiLoading, setAiLoading] = useState({ explain: null, propose: null })
+  const [autoRefresh, setAutoRefresh] = useState(false)
+  const [findingsError, setFindingsError] = useState(null)
 
   useEffect(() => {
     loadJobs()
     checkAIStatus()
   }, [])
+
+  // Auto-refresh polling after scan
+  const fetchJobs = useCallback(async () => {
+    try {
+      const data = await api.listJobs()
+      setJobs(data.jobs || [])
+    } catch (err) {
+      console.error('Error loading jobs:', err)
+    }
+  }, [])
+
+  usePolling(fetchJobs, 3000, autoRefresh)
+
+  useEffect(() => {
+    if (autoRefresh) {
+      const timer = setTimeout(() => setAutoRefresh(false), 20000) // Stop after 20s
+      return () => clearTimeout(timer)
+    }
+  }, [autoRefresh])
 
   const checkAIStatus = async () => {
     try {
@@ -58,10 +84,13 @@ function App() {
     try {
       setLoading(true)
       setError(null)
+      setFindingsError(null)
       const data = await api.getFindings(jobId, severity)
       setFindings(data.findings || [])
     } catch (err) {
-      setError('Failed to load findings: ' + err.message)
+      const errorMsg = 'Failed to load findings: ' + err.message
+      setFindingsError(errorMsg)
+      setError(errorMsg)
       console.error('Error loading findings:', err)
     } finally {
       setLoading(false)
@@ -73,32 +102,24 @@ function App() {
       setLoading(true)
       setError(null)
       const result = await api.submitScan(serviceName, region, projectId)
-      alert(`Scan queued successfully! Job ID: ${result.job_id.substring(0, 8)}...`)
+      const jobId = result.job_id
       
-      // Poll for new job to appear (scan processor runs asynchronously)
-      let attempts = 0
-      const maxAttempts = 60 // Check for up to 60 seconds (scan can take time)
+      notify.ok(`Scan scheduled — job ${jobId.substring(0, 8)}...`)
       
-      const pollForJob = async () => {
+      // Start auto-refresh polling for ~20 seconds
+      setAutoRefresh(true)
+      setLoading(false)
+      
+      // Insert new job at the top if it appears
+      setTimeout(async () => {
         const data = await api.listJobs()
-        const jobExists = data.jobs?.some(job => job.job_id === result.job_id)
-        
+        const jobExists = data.jobs?.some(job => job.job_id === jobId)
         if (jobExists) {
-          await loadJobs()
-          setLoading(false)
-        } else if (attempts >= maxAttempts) {
-          await loadJobs() // Load anyway to show any jobs
-          setLoading(false)
-          setError('Scan is taking longer than expected. Please refresh if it does not appear shortly.')
-        } else {
-          attempts++
-          setTimeout(pollForJob, 1000) // Check every second
+          setJobs(data.jobs || [])
         }
-      }
-      
-      // Start polling immediately
-      setTimeout(pollForJob, 1000)
+      }, 2000)
     } catch (err) {
+      notify.err('Failed to schedule scan: ' + err.message)
       setError('Failed to submit scan: ' + err.message)
       console.error('Error submitting scan:', err)
       setLoading(false)
@@ -121,6 +142,7 @@ function App() {
       setCurrentExplanation(explanation)
       setShowExplanation(true)
     } catch (err) {
+      notify.err('Failed to get explanation: ' + err.message)
       setError('Failed to get explanation: ' + err.message)
       console.error('Error getting explanation:', err)
     } finally {
@@ -134,6 +156,8 @@ function App() {
       setError(null)
       const result = await api.proposeFixes(jobId)
       
+      notify.ok('Propose job triggered successfully!')
+      
       // Prepare content for modal display
       let content = {
         success: true,
@@ -144,7 +168,8 @@ function App() {
         summary: null,
         implementationSteps: null,
         testingRecommendations: null,
-        terraformCode: null
+        terraformCode: null,
+        policyCheck: result.policy_check || result.preservation_check || null // Policy troubleshooter result
       }
       
       if (result.ai_powered && result.ai_proposals) {
@@ -185,6 +210,7 @@ function App() {
       setProposeContent(content)
       setShowProposeModal(true)
     } catch (err) {
+      notify.err('Failed to trigger propose: ' + err.message)
       setError('Failed to trigger propose: ' + err.message)
       console.error('Error triggering propose:', err)
     } finally {
@@ -192,11 +218,70 @@ function App() {
     }
   }
 
+  const handleCopyJobId = async (jobId) => {
+    const success = await copyToClipboard(jobId)
+    if (success) {
+      notify.ok('Job ID copied to clipboard')
+    } else {
+      notify.err('Failed to copy Job ID')
+    }
+  }
+
+  const handleCopyLink = async (url) => {
+    const success = await copyToClipboard(url)
+    if (success) {
+      notify.ok('Link copied to clipboard')
+    } else {
+      notify.err('Failed to copy link')
+    }
+  }
+
+  // Quick links from env vars
+  const quickLinks = {
+    video: import.meta.env.VITE_DEMO_VIDEO_URL,
+    repo: import.meta.env.VITE_REPO_URL,
+    architecture: import.meta.env.VITE_ARCH_URL,
+    aiStudio: import.meta.env.VITE_AI_STUDIO_URL
+  }
+  const hasQuickLinks = Object.values(quickLinks).some(Boolean)
+
   return (
     <div className="App">
       <header className="App-header">
-        <h1>🛡️ Zero-Trust Explainer</h1>
-        <p>Human-readable IAM diffs for Cloud Run</p>
+        <div className="header-content">
+          <div>
+            <h1>🛡️ Zero-Trust Explainer</h1>
+            <p>Human-readable IAM diffs for Cloud Run</p>
+          </div>
+          <div className="header-right">
+            <HealthChip apiBase={import.meta.env.VITE_API_URL || 'http://localhost:8080'} />
+            {hasQuickLinks && (
+              <div className="quick-links">
+                {quickLinks.video && (
+                  <a href={quickLinks.video} target="_blank" rel="noreferrer">Video</a>
+                )}
+                {quickLinks.repo && (
+                  <>
+                    {quickLinks.video && ' · '}
+                    <a href={quickLinks.repo} target="_blank" rel="noreferrer">Repo</a>
+                  </>
+                )}
+                {quickLinks.architecture && (
+                  <>
+                    {(quickLinks.video || quickLinks.repo) && ' · '}
+                    <a href={quickLinks.architecture} target="_blank" rel="noreferrer">Architecture</a>
+                  </>
+                )}
+                {quickLinks.aiStudio && (
+                  <>
+                    {(quickLinks.video || quickLinks.repo || quickLinks.architecture) && ' · '}
+                    <a href={quickLinks.aiStudio} target="_blank" rel="noreferrer">AI Studio</a>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
         {aiStatus && (
           <div className="ai-status">
             {aiStatus.enabled ? (
@@ -228,7 +313,13 @@ function App() {
           <div className="section-header">
             <h2>Recent Scan Jobs</h2>
             <button onClick={handleRefresh} disabled={loading} className="refresh-btn">
-              {loading ? 'Loading...' : '🔄 Refresh'}
+              {loading ? (
+                <>
+                  <Spinner size="14px" /> Loading...
+                </>
+              ) : (
+                '🔄 Refresh'
+              )}
             </button>
           </div>
           
@@ -240,11 +331,14 @@ function App() {
                 isSelected={selectedJobId === job.job_id}
                 onSelect={() => setSelectedJobId(job.job_id)}
                 onPropose={handlePropose}
+                onCopyJobId={handleCopyJobId}
                 aiLoading={aiLoading}
               />
             ))}
             {jobs.length === 0 && !loading && (
-              <p className="no-data">No jobs found. Submit a scan to get started.</p>
+              <div className="no-data">
+                <p>No scan jobs yet. Click Start Scan, then we'll refresh your results.</p>
+              </div>
             )}
           </div>
         </section>
@@ -275,6 +369,7 @@ function App() {
               onExplain={handleExplain}
               loading={loading}
               aiLoading={aiLoading}
+              error={findingsError}
             />
           </section>
         )}
@@ -579,12 +674,37 @@ function App() {
                 </div>
               )}
               
+              {/* Policy Troubleshooter Result Callout */}
+              {proposeContent.policyCheck && (
+                <div className="policy-check-callout" role="alert">
+                  {proposeContent.policyCheck.preserved ? (
+                    <div className="policy-check-success">
+                      ✅ Critical permissions preserved
+                    </div>
+                  ) : (
+                    <div className="policy-check-warning">
+                      ⚠️ Review: {proposeContent.policyCheck.missing || 'Some permissions not preserved'}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {proposeContent.reportUrl && (
                 <div className="report-link">
                   <h4>📄 Full Report</h4>
-                  <a href={proposeContent.reportUrl} target="_blank" rel="noopener noreferrer">
-                    {proposeContent.reportUrl}
-                  </a>
+                  <div className="report-link-row">
+                    <a href={proposeContent.reportUrl} target="_blank" rel="noopener noreferrer">
+                      {proposeContent.reportUrl}
+                    </a>
+                    <button
+                      className="copy-link-btn"
+                      onClick={() => handleCopyLink(proposeContent.reportUrl)}
+                      aria-label="Copy link"
+                      title="Copy link"
+                    >
+                      📋 Copy link
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
