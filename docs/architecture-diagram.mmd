@@ -21,12 +21,17 @@ graph TB
         PubSub["💬 Pub/Sub Topic<br/>Scan Requests"]
         BigQuery["🗄️ BigQuery<br/>Findings Table"]
         GCS["☁️ Cloud Storage<br/>Reports Bucket"]
+        Secrets["🔐 Secret Manager<br/>gemini-api-key"]
     end
 
     %% User Flow
     User -->|HTTPS| Frontend
     Frontend -->|REST API| Backend
 
+    %% Secret Manager Flow
+    Secrets -->|"API Key<br/>(auto-injected)"| Backend
+    Secrets -->|"API Key<br/>(auto-injected)"| ProposeJob
+    
     %% AI Explain Flow
     Backend -->|"AI Explain"| AI
     AI -->|JSON Response| Backend
@@ -51,12 +56,14 @@ graph TB
     classDef userLayer fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
     classDef computeLayer fill:#FFF3E0,stroke:#F57C00,stroke-width:2px
     classDef aiLayer fill:#F3E5F5,stroke:#7B1FA2,stroke-width:3px
+    classDef secretLayer fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
     classDef dataLayer fill:#E0F2F1,stroke:#00695C,stroke-width:2px
     classDef jobLayer fill:#FFFDE7,stroke:#F9A825,stroke-width:2px,stroke-dasharray: 5 5
 
     class User,Frontend userLayer
     class Backend computeLayer
     class AI aiLayer
+    class Secrets secretLayer
     class PubSub,BigQuery,GCS dataLayer
     class ScanJob,ProposeJob jobLayer
 

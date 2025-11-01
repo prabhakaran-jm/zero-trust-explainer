@@ -21,9 +21,10 @@ variable "frontend_image" {
 }
 
 variable "gemini_api_key" {
-  description = "Gemini API key for AI Studio integration"
+  description = "Gemini API key for AI Studio integration (optional if using Secret Manager - only needed for initial secret creation)"
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "environment" {

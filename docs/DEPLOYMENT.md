@@ -26,6 +26,7 @@ gcloud services enable \
   pubsub.googleapis.com \
   bigquery.googleapis.com \
   storage.googleapis.com \
+  secretmanager.googleapis.com \
   cloudbuild.googleapis.com
 ```
 
@@ -70,36 +71,144 @@ terraform init
 ```
 
 3. Create `terraform.tfvars`:
-```hcl
-project_id     = "your-project-id"
-region         = "us-central1"
-backend_image  = "us-central1-docker.pkg.dev/your-project-id/zte-repo/backend:latest"
-frontend_image = "us-central1-docker.pkg.dev/your-project-id/zte-repo/frontend:latest"
-```
+   
+   **Option A: Copy from example file (Recommended)**
+   ```bash
+   cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+   # Edit terraform/terraform.tfvars with your actual values
+   ```
+   
+   **Option B: Create manually**
+   ```hcl
+   project_id     = "your-project-id"
+   region         = "us-central1"
+   backend_image  = "us-central1-docker.pkg.dev/your-project-id/zte-repo/backend:latest"
+   frontend_image = "us-central1-docker.pkg.dev/your-project-id/zte-repo/frontend:latest"
+   # Optionally provide API key for initial Secret Manager setup
+   # After first deployment, you can remove this line
+   gemini_api_key = "your-ai-studio-api-key"  # Optional - only for initial secret creation
+   ```
+   
+   **Note**: See `terraform/terraform.tfvars.example` for a complete template with all options documented.
 
-4. Plan and apply:
+4. **Set up Secret Manager (Optional - if not providing API key in tfvars)**:
+   ```bash
+   # Create the secret manually
+   echo -n "your-api-key-here" | gcloud secrets create gemini-api-key \
+     --data-file=- \
+     --replication-policy="automatic" \
+     --project=${GCP_PROJECT_ID}
+   ```
+   
+   If you provide `gemini_api_key` in `terraform.tfvars`, Terraform will create the secret automatically.
+
+5. Plan and apply:
 ```bash
 terraform plan
 terraform apply
 ```
 
-5. Get deployment URLs:
+**Note**: On first deployment with `gemini_api_key` in `terraform.tfvars`, Terraform will:
+- Create the Secret Manager secret
+- Store the API key securely
+- Configure Cloud Run to use the secret
+
+After successful deployment, you can remove `gemini_api_key` from `terraform.tfvars` - the secret will continue to work.
+
+6. Get deployment URLs:
 ```bash
 terraform output backend_url
 terraform output frontend_url
 ```
 
-## Step 3: GitHub Actions CI/CD
+## Step 3: Secret Manager Setup
 
-### Create Service Account
+The application uses GCP Secret Manager to securely store the Gemini API key. This is configured automatically by Terraform.
 
-1. Create service account:
+### Initial Setup (Option 1: Via Terraform)
+
+If you provide `gemini_api_key` in `terraform.tfvars`, Terraform will:
+1. Create the secret `gemini-api-key`
+2. Store the initial version
+3. Grant service account access
+4. Configure Cloud Run to use the secret
+
+### Initial Setup (Option 2: Manual)
+
+If you prefer to create the secret manually:
+
 ```bash
-gcloud iam service-accounts create zte-deployer \
-  --display-name="ZTE GitHub Actions Deployer"
+# Create the secret
+echo -n "your-api-key-here" | gcloud secrets create gemini-api-key \
+  --data-file=- \
+  --replication-policy="automatic" \
+  --project=${GCP_PROJECT_ID}
+
+# Grant service account access (Terraform will do this, but if doing manually):
+SERVICE_ACCOUNT="zte-service-account@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
+gcloud secrets add-iam-policy-binding gemini-api-key \
+  --member="serviceAccount:${SERVICE_ACCOUNT}" \
+  --role="roles/secretmanager.secretAccessor" \
+  --project=${GCP_PROJECT_ID}
 ```
 
-2. Grant required permissions:
+### Update Secret
+
+To update the API key later:
+
+```bash
+echo -n "new-api-key-here" | gcloud secrets versions add gemini-api-key \
+  --data-file=- \
+  --project=${GCP_PROJECT_ID}
+```
+
+Cloud Run will automatically use the latest version.
+
+### Verify Secret
+
+```bash
+# Check secret exists
+gcloud secrets list | grep gemini-api-key
+
+# Check Cloud Run is using secret
+gcloud run services describe zte-backend-api \
+  --region=${REGION} \
+  --format="yaml" | grep -A 5 GEMINI_API_KEY
+```
+
+## Step 4: GitHub Actions CI/CD
+
+### Quick Setup (Recommended)
+
+**Option A: Use Setup Script**
+
+1. **Run setup script**:
+```bash
+# Unix/Mac
+export GCP_PROJECT_ID="your-project-id"
+chmod +x scripts/setup-cicd.sh
+./scripts/setup-cicd.sh
+
+# Windows PowerShell
+$env:GCP_PROJECT_ID = "your-project-id"
+.\scripts\setup-cicd.ps1
+```
+
+2. **Follow the script instructions** to add GitHub Secrets
+
+### Manual Setup
+
+If you prefer to set up manually:
+
+**1. Create Service Account**
+
+```bash
+gcloud iam service-accounts create zte-deployer \
+  --display-name="ZTE GitHub Actions Deployer" \
+  --project=${GCP_PROJECT_ID}
+```
+
+**2. Grant Required Permissions**
 ```bash
 # Storage Admin (for Artifact Registry)
 gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
@@ -130,6 +239,16 @@ gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
 gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
   --member="serviceAccount:zte-deployer@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
   --role="roles/bigquery.admin"
+
+# Secret Manager Admin (for managing secrets)
+gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
+  --member="serviceAccount:zte-deployer@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.admin"
+
+# Service Usage Admin (for enabling APIs)
+gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
+  --member="serviceAccount:zte-deployer@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/serviceusage.serviceUsageAdmin"
 ```
 
 3. Create and download key:
@@ -145,6 +264,7 @@ gcloud iam service-accounts keys create key.json \
 3. Add the following secrets:
    - `GCP_PROJECT_ID`: Your GCP project ID
    - `GCP_SA_KEY`: Contents of the `key.json` file
+   - `GEMINI_API_KEY`: Your Google AI Studio API key (optional - only if Terraform will create the secret)
 
 ### Trigger Deployment
 

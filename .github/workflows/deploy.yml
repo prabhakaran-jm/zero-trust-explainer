@@ -64,14 +64,27 @@ jobs:
           terraform init
 
       - name: Terraform Plan
+        id: terraform-plan
         run: |
           cd terraform
-          terraform plan \
-            -var="project_id=${{ env.GCP_PROJECT_ID }}" \
-            -var="region=${{ env.GCP_REGION }}" \
-            -var="backend_image=${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/backend:${{ github.sha }}" \
-            -var="frontend_image=${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/frontend:${{ github.sha }}" \
-            -out=tfplan
+          
+          # Build terraform plan command with required variables
+          TF_PLAN_CMD="terraform plan \
+            -var=\"project_id=${{ env.GCP_PROJECT_ID }}\" \
+            -var=\"region=${{ env.GCP_REGION }}\" \
+            -var=\"backend_image=${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/backend:${{ github.sha }}\" \
+            -var=\"frontend_image=${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/frontend:${{ github.sha }}\""
+          
+          # Add gemini_api_key if secret exists (for initial Secret Manager setup)
+          if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
+            TF_PLAN_CMD="$TF_PLAN_CMD -var=\"gemini_api_key=${{ secrets.GEMINI_API_KEY }}\""
+          fi
+          
+          # Complete command and save plan
+          TF_PLAN_CMD="$TF_PLAN_CMD -out=tfplan"
+          
+          # Execute terraform plan
+          eval $TF_PLAN_CMD
 
       - name: Terraform Apply
         run: |

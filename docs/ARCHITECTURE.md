@@ -24,13 +24,14 @@
       │         │          │          │             │
       ▼         ▼          ▼          ▼             ▼
 ┌──────────┐ ┌─────┐  ┌─────────┐ ┌─────┐   ┌──────────────┐
-│  Pub/Sub │ │ BQ  │  │   GCS   │ │ Run │   │   IAM/Auth   │
-│  Topic   │ │     │  │ Bucket  │ │ Job │   │              │
+│  Pub/Sub │ │ BQ  │  │   GCS   │ │ Run │   │ Secret Mgr   │
+│  Topic   │ │     │  │ Bucket  │ │ Job │   │ (API Key)    │
 └──────────┘ └─────┘  └─────────┘ └─────┘   └──────────────┘
-     │          ▲          ▲         │
-     │          │          │         │
-     └──────────┴──────────┴─────────┘
-            Data Flow
+     │          ▲          ▲         │             ▲
+     │          │          │         │             │
+     └──────────┴──────────┴─────────┘             │
+            Data Flow                               │
+                                         API Key Injection
 ```
 
 ## Components
@@ -115,6 +116,14 @@
 - Cloud Run services use dedicated service account
 - Public access controlled via IAM bindings
 - Signed URLs for temporary GCS access
+
+### Secret Management
+- **GCP Secret Manager** for storing sensitive data (Gemini API key)
+- Secrets encrypted at rest and in transit
+- Automatic secret injection into Cloud Run containers as environment variables
+- Service account has `secretmanager.secretAccessor` role (least privilege)
+- Secret rotation supported via Secret Manager versions
+- API key never stored in Terraform state or code
 
 ### Network Security
 - HTTPS enforced for all traffic

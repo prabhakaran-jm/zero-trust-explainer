@@ -46,8 +46,13 @@ resource "google_cloud_run_v2_service" "backend_api" {
       }
 
       env {
-        name  = "GEMINI_API_KEY"
-        value = var.gemini_api_key
+        name = "GEMINI_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.gemini_api_key.secret_id
+            version = "latest"
+          }
+        }
       }
 
       env {
@@ -78,7 +83,8 @@ resource "google_cloud_run_v2_service" "backend_api" {
     google_project_service.required_apis,
     google_bigquery_table.findings_table,
     google_storage_bucket.reports_bucket,
-    google_pubsub_topic.scan_requests
+    google_pubsub_topic.scan_requests,
+    google_secret_manager_secret_iam_member.gemini_api_key_accessor
   ]
 }
 
@@ -233,8 +239,13 @@ resource "google_cloud_run_v2_job" "propose_job" {
         }
 
         env {
-          name  = "GEMINI_API_KEY"
-          value = var.gemini_api_key
+          name = "GEMINI_API_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.gemini_api_key.secret_id
+              version = "latest"
+            }
+          }
         }
 
         resources {
@@ -253,6 +264,7 @@ resource "google_cloud_run_v2_job" "propose_job" {
   depends_on = [
     google_project_service.required_apis,
     google_bigquery_table.findings_table,
-    google_storage_bucket.reports_bucket
+    google_storage_bucket.reports_bucket,
+    google_secret_manager_secret_iam_member.gemini_api_key_accessor
   ]
 }

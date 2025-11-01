@@ -66,3 +66,6 @@ resource "google_service_account_iam_member" "zte_token_creator" {
   role               = "roles/iam.serviceAccountTokenCreator"
   member             = "serviceAccount:${google_service_account.zte_service_account.email}"
 }
+
+# Secret Manager accessor role is granted in secrets.tf
+# This ensures the service account can read secrets

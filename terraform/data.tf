@@ -11,8 +11,9 @@ resource "google_bigquery_dataset" "zte_dataset" {
 
 # BigQuery Table for findings
 resource "google_bigquery_table" "findings_table" {
-  dataset_id = google_bigquery_dataset.zte_dataset.dataset_id
-  table_id   = "findings"
+  dataset_id          = google_bigquery_dataset.zte_dataset.dataset_id
+  table_id            = "findings"
+  deletion_protection = false
 
   schema = jsonencode([
     {
@@ -75,6 +76,14 @@ resource "google_bigquery_table" "findings_table" {
   time_partitioning {
     type  = "DAY"
     field = "created_at"
+  }
+
+  # Prevent unnecessary replacements due to schema format differences
+  lifecycle {
+    ignore_changes = [
+      # Ignore changes to schema format (mode attributes) that don't affect actual structure
+      schema
+    ]
   }
 }
 

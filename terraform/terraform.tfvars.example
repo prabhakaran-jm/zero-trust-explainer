@@ -1,0 +1,59 @@
+# Zero-Trust Explainer Terraform Configuration
+# AI Studio Category - Cloud Run Hackathon
+#
+# Copy this file to terraform.tfvars and fill in your actual values
+# cp terraform.tfvars.example terraform.tfvars
+
+# ============================================================================
+# Required Variables
+# ============================================================================
+
+# GCP Project ID where resources will be created
+project_id = "your-project-id"
+
+# GCP Region for deployment
+region = "us-central1"
+
+# Docker images must be built and pushed to Artifact Registry first
+# Format: {region}-docker.pkg.dev/{project-id}/zte-repo/{service}:{tag}
+backend_image = "us-central1-docker.pkg.dev/your-project-id/zte-repo/backend:latest"
+frontend_image = "us-central1-docker.pkg.dev/your-project-id/zte-repo/frontend:latest"
+
+# ============================================================================
+# Optional Variables - Secret Manager Configuration
+# ============================================================================
+
+# Gemini API Key for AI Studio integration
+# 
+# IMPORTANT SECURITY NOTES:
+# - This is ONLY needed for initial Secret Manager setup via Terraform
+# - After first deployment, the secret will be stored in Secret Manager
+# - You can remove this line after successful deployment
+# - To update the secret later, use: gcloud secrets versions add gemini-api-key
+# 
+# Option 1: Provide API key for Terraform to create the secret automatically
+# gemini_api_key = "your-ai-studio-api-key-here"
+#
+# Option 2: Leave commented out and create the secret manually:
+#   echo -n "your-api-key" | gcloud secrets create gemini-api-key \
+#     --data-file=- --replication-policy="automatic" --project=your-project-id
+#
+gemini_api_key = ""  # Optional - only for initial secret creation
+
+# ============================================================================
+# Optional Variables - Scaling Configuration
+# ============================================================================
+
+# Minimum number of Cloud Run instances (0 = scale to zero when idle)
+# min_instances = 0
+
+# Maximum number of Cloud Run instances
+# max_instances = 10
+
+# ============================================================================
+# Optional Variables - Environment
+# ============================================================================
+
+# Environment name (dev, staging, prod)
+# environment = "prod"
+

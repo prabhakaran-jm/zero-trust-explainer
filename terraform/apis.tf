@@ -6,6 +6,7 @@ resource "google_project_service" "required_apis" {
     "pubsub.googleapis.com",
     "bigquery.googleapis.com",
     "storage.googleapis.com",
+    "secretmanager.googleapis.com",
   ])
 
   service            = each.value

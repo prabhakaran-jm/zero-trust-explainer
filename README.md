@@ -53,13 +53,14 @@ User Browser → Frontend (React) → Backend API (FastAPI) → AI Studio (Gemin
 - **Pub/Sub**: Scan request queue
 - **BigQuery**: Findings data warehouse
 - **GCS Bucket**: Report storage with signed URLs
+- **Secret Manager**: Secure storage for Gemini API key
 - **Google AI Studio**: Gemini Pro integration for intelligent analysis
 
 ## Prerequisites
 
 - Google Cloud Platform account
 - GCP Project with billing enabled
-- **Google AI Studio API Key** (for Gemini Pro integration)
+- **Google AI Studio API Key** (for Gemini Pro integration - stored in Secret Manager)
 - Terraform >= 1.5
 - Docker
 - Node.js >= 20 (for local frontend development)
@@ -85,7 +86,8 @@ gcloud services enable \
   artifactregistry.googleapis.com \
   pubsub.googleapis.com \
   bigquery.googleapis.com \
-  storage.googleapis.com
+  storage.googleapis.com \
+  secretmanager.googleapis.com
 ```
 
 ### 3. Local Development
@@ -245,13 +247,19 @@ cd terraform
 # Initialize Terraform
 terraform init
 
-# Create terraform.tfvars
-cat > terraform.tfvars <<EOF
+# Create terraform.tfvars from example
+cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+
+# Edit terraform/terraform.tfvars with your actual values
+# Or create it manually using the template below:
+cat > terraform/terraform.tfvars <<EOF
 project_id = "your-project-id"
 region = "us-central1"
 backend_image = "us-central1-docker.pkg.dev/your-project-id/zte-repo/backend:latest"
 frontend_image = "us-central1-docker.pkg.dev/your-project-id/zte-repo/frontend:latest"
-gemini_api_key = "your-ai-studio-api-key"  # 🤖 AI Studio API Key
+# Optionally provide gemini_api_key for initial Secret Manager setup
+# After first deployment, you can remove this line - secret will be stored in Secret Manager
+gemini_api_key = "your-ai-studio-api-key"  # 🤖 AI Studio API Key (optional - only for initial secret creation)
 EOF
 
 # Plan deployment
@@ -296,27 +304,39 @@ cd ..
 
 See `docs/FRONTEND_DEPLOYMENT.md` for more details.
 
-### 6. GitHub Actions Deployment
+### 6. GitHub Actions CI/CD Setup
 
-1. Create GCP Service Account with required permissions:
+**Quick Setup (Recommended)**:
+
+1. **Run setup script**:
 ```bash
-gcloud iam service-accounts create zte-deployer \
-  --display-name="ZTE Deployer"
+# Unix/Mac
+export GCP_PROJECT_ID="your-project-id"
+./scripts/setup-cicd.sh
 
-gcloud projects add-iam-policy-binding $GCP_PROJECT_ID \
-  --member="serviceAccount:zte-deployer@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/owner"
-
-gcloud iam service-accounts keys create key.json \
-  --iam-account=zte-deployer@${GCP_PROJECT_ID}.iam.gserviceaccount.com
+# Windows PowerShell
+$env:GCP_PROJECT_ID = "your-project-id"
+.\scripts\setup-cicd.ps1
 ```
 
-2. Add GitHub Secrets:
-- `GCP_PROJECT_ID`: Your GCP project ID
-- `GCP_SA_KEY`: Contents of key.json file
-- `GEMINI_API_KEY`: Your Google AI Studio API key 🤖
+2. **Add GitHub Secrets**:
+   - Go to **GitHub Repository** → **Settings** → **Secrets and variables** → **Actions**
+   - Add `GCP_PROJECT_ID`: Your project ID
+   - Add `GCP_SA_KEY`: Contents of `github-actions-key.json` (from setup script)
+   - Add `GEMINI_API_KEY`: (Optional) Your API key (only for initial Secret Manager setup)
 
-3. Push to main branch to trigger deployment
+3. **Deploy**:
+```bash
+git push origin main
+```
+
+**Manual Setup** (if you prefer to do it manually):
+```bash
+# See docs/CICD_SETUP.md for detailed instructions
+# Or docs/CICD_SETUP_QUICKSTART.md for quick reference
+```
+
+**Note**: The API key is stored in GCP Secret Manager after first deployment. After that, you can remove `GEMINI_API_KEY` from GitHub Secrets.
 
 ## API Usage
 
@@ -379,13 +399,15 @@ curl https://your-backend-url/jobs?limit=50
 
 ### Backend
 - `GCP_PROJECT_ID` - GCP project ID
-- `GEMINI_API_KEY` - 🤖 Google AI Studio API key for Gemini Pro
+- `GEMINI_API_KEY` - 🤖 Google AI Studio API key for Gemini Pro (automatically injected from Secret Manager in Cloud Run)
 - `PUBSUB_TOPIC` - Pub/Sub topic name (default: zte-scan-requests)
 - `BQ_DATASET` - BigQuery dataset ID (default: zero_trust_explainer)
 - `BQ_TABLE` - BigQuery table name (default: findings)
 - `REPORT_BUCKET` - GCS bucket for reports (optional, enables signed URLs)
 - `PROPOSE_JOB_NAME` - Cloud Run Job name (default: zte-propose-job)
 - `REGION` - GCP region (default: us-central1)
+
+**Note**: In Cloud Run, `GEMINI_API_KEY` is automatically injected from GCP Secret Manager. For local development, set it in your `.env` file.
 
 ### Frontend
 - `VITE_API_URL` - Backend API URL

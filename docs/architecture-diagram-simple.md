@@ -15,11 +15,19 @@
 │  ┌──────────────────┐        ┌──────────────────────────┐   │
 │  │   Frontend       │        │    Backend API           │   │
 │  │  (React/Vite UI) │◄──────►│  (FastAPI + Gemini Pro) │   │
-│  └──────────────────┘ REST   └──────────────────────────┘   │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         │ Prompts
+│  └──────────────────┘ REST   └───────┬────────────────────┘   │
+└────────────────────────────────────────│────────────────────┘
+                                         │
+                         ┌───────────────┘
+                         │ API Key (auto-injected)
                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Secret Manager                          │
+│                  🔐 gemini-api-key                          │
+└─────────────────────────────────────────────────────────────┘
+                                         │
+                                         │ Prompts (with API Key)
+                                         ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    Google AI Studio                         │
 │                      🤖 Gemini Pro                           │
@@ -54,6 +62,7 @@
 - **Pub/Sub**: Asynchronous scan request queue
 - **BigQuery**: Findings data warehouse
 - **Cloud Storage**: Report storage with signed URLs
+- **Secret Manager**: Secure storage for Gemini API key (auto-injected into Cloud Run)
 
 ### Cloud Run Jobs
 - **Scan Processor Job**: Processes scan requests and writes findings to BigQuery
@@ -63,22 +72,25 @@
 
 1. **Cloud Run Services**: Frontend and Backend API
 2. **Google AI Studio**: Gemini Pro for AI analysis
-3. **Cloud Run Jobs**: Async processing for scans and proposals
-4. **Pub/Sub**: Event-driven messaging
-5. **BigQuery**: Data warehouse for findings
-6. **Cloud Storage**: Secure report storage
+3. **Secret Manager**: Secure API key storage and injection
+4. **Cloud Run Jobs**: Async processing for scans and proposals
+5. **Pub/Sub**: Event-driven messaging
+6. **BigQuery**: Data warehouse for findings
+7. **Cloud Storage**: Secure report storage
 
 ## Data Flow
 
 1. **User** sends Web Request → **Cloud Run Service (Frontend)**
 2. **Frontend** → **Backend API** (REST calls)
-3. **Backend API** sends **Prompts** → **Gemini Pro**
-4. **Gemini Pro** returns **AI Responses** → **Backend API**
-5. **Backend API** interacts with:
+3. **Secret Manager** → **Backend API** (API key auto-injected as environment variable)
+4. **Backend API** sends **Prompts** → **Gemini Pro** (using API key from Secret Manager)
+5. **Gemini Pro** returns **AI Responses** → **Backend API**
+6. **Backend API** interacts with:
+   - **Secret Manager** (reads API key automatically)
    - **Pub/Sub** (publish scan requests)
    - **BigQuery** (query/store findings)
    - **Cloud Storage** (store reports)
-   - **Cloud Run Jobs** (trigger async processing)
+   - **Cloud Run Jobs** (trigger async processing, which also receive API key from Secret Manager)
 
 ## Architecture Diagram Reference
 

@@ -34,3 +34,8 @@ output "service_account_email" {
   description = "Service account email"
   sensitive   = true
 }
+
+output "gemini_api_key_secret_name" {
+  value       = google_secret_manager_secret.gemini_api_key.secret_id
+  description = "Secret Manager secret name for Gemini API key"
+}
