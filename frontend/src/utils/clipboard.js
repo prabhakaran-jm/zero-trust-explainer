@@ -25,3 +25,10 @@ export async function copyToClipboard(text) {
   }
 }
 
+/**
+ * Simple copy text function (alias for compatibility)
+ */
+export async function copyText(text) {
+  return await copyToClipboard(text)
+}
+

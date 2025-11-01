@@ -7,7 +7,7 @@ import HealthChip from './components/HealthChip'
 import Spinner from './components/Spinner'
 import { api } from './services/api'
 import { notify } from './utils/notify'
-import { copyToClipboard } from './utils/clipboard'
+import { copyToClipboard, copyText } from './utils/clipboard'
 import { formatTerraformCode } from './utils/terraformFormatter'
 import { normalizeProposal } from './utils/normalizeProposal'
 import usePolling from './hooks/usePolling'
@@ -397,7 +397,16 @@ function App() {
                 key={job.job_id}
                 job={job}
                 isSelected={selectedJobId === job.job_id}
-                onSelect={() => setSelectedJobId(job.job_id)}
+                onSelect={() => {
+                  setSelectedJobId(job.job_id)
+                  // Scroll to findings after state update
+                  setTimeout(() => {
+                    const el = document.getElementById(`findings-${job.job_id}`)
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }
+                  }, 50)
+                }}
                 onPropose={handlePropose}
                 onCopyJobId={handleCopyJobId}
                 aiLoading={aiLoading}
@@ -412,7 +421,7 @@ function App() {
         </section>
 
         {selectedJobId && (
-          <section className="findings-section">
+          <section id={`findings-${selectedJobId}`} className="findings-section">
             <div className="section-header">
               <h2>Findings for Job {selectedJobId}</h2>
               <div className="filters">
@@ -973,7 +982,33 @@ function App() {
                   
                   {proposeContent.terraformCode && (
                     <div className="terraform-code">
-                      <h4>📝 Generated Terraform Code</h4>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <h4>📝 Generated Terraform Code</h4>
+                        <button
+                          onClick={async () => {
+                            const terraformText = proposeContent.terraformCode
+                            const success = await copyText(terraformText)
+                            if (success) {
+                              notify.ok('Terraform copied')
+                            } else {
+                              notify.err('Copy failed')
+                            }
+                          }}
+                          aria-label="Copy Terraform code"
+                          className="copy-terraform-btn"
+                          style={{ 
+                            padding: '0.25rem 0.5rem', 
+                            fontSize: '0.75rem', 
+                            borderRadius: '4px', 
+                            background: '#e2e8f0', 
+                            border: '1px solid #cbd5e1',
+                            cursor: 'pointer',
+                            transition: 'background 0.2s'
+                          }}
+                        >
+                          Copy Terraform
+                        </button>
+                      </div>
                       <pre><code>{formatTerraformCode(proposeContent.terraformCode)}</code></pre>
                     </div>
                   )}
@@ -1015,10 +1050,37 @@ function App() {
                         
                         return (
                           <div key={key} className="terraform-code-block">
-                            <h5>
-                              {severity && <span className={`severity-badge severity-${severity.toLowerCase()}`} style={{ marginRight: '0.5rem' }}>{severity}</span>}
-                              {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </h5>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                              <h5>
+                                {severity && <span className={`severity-badge severity-${severity.toLowerCase()}`} style={{ marginRight: '0.5rem' }}>{severity}</span>}
+                                {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              </h5>
+                              {displayCode && (
+                                <button
+                                  onClick={async () => {
+                                    const success = await copyText(displayCode)
+                                    if (success) {
+                                      notify.ok('Terraform copied')
+                                    } else {
+                                      notify.err('Copy failed')
+                                    }
+                                  }}
+                                  aria-label="Copy Terraform code"
+                                  className="copy-terraform-btn"
+                                  style={{ 
+                                    padding: '0.25rem 0.5rem', 
+                                    fontSize: '0.75rem', 
+                                    borderRadius: '4px', 
+                                    background: '#e2e8f0', 
+                                    border: '1px solid #cbd5e1',
+                                    cursor: 'pointer',
+                                    transition: 'background 0.2s'
+                                  }}
+                                >
+                                  Copy Terraform
+                                </button>
+                              )}
+                            </div>
                             {description && <p className="code-description">{description}</p>}
                             {displayCode && (
                               <pre><code>{formatTerraformCode(displayCode)}</code></pre>

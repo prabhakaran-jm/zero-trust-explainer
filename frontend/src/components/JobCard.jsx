@@ -15,10 +15,21 @@ function JobCard({ job, isSelected, onSelect, onPropose, onCopyJobId, aiLoading 
   const totalFindings = job.finding_count || 0
   const severityCounts = job.severity_counts || {}
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onSelect()
+    }
+  }
+
   return (
     <div 
       className={`job-card ${isSelected ? 'selected' : ''}`}
       onClick={onSelect}
+      role="button"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      aria-label={`Select job ${job.job_id.substring(0, 8)}`}
     >
       <div className="job-card-header">
         <div className="job-id-row">
