@@ -8,13 +8,14 @@ function FindingCard({ finding, onExplain, aiLoading }) {
   const [expanded, setExpanded] = useState(false)
   
   const getSeverityColor = (severity) => {
+    // Use colors with AA contrast (WCAG 2.1)
     const colors = {
-      critical: '#dc3545',
-      high: '#fd7e14',
-      medium: '#ffc107',
-      low: '#28a745'
+      critical: '#dc2626', // red-600
+      high: '#f59e0b', // amber-500
+      medium: '#eab308', // yellow-500
+      low: '#16a34a' // green-600
     }
-    return colors[severity?.toLowerCase()] || '#6c757d'
+    return colors[severity?.toLowerCase()] || '#6b7280' // gray-500
   }
 
   const severityColor = getSeverityColor(finding.severity)
@@ -121,11 +122,12 @@ ORDER BY
           className="explain-btn ai-powered-btn"
           onClick={() => onExplain(finding.id)}
           disabled={aiLoading?.explain === finding.id}
+          aria-label={`Explain finding ${finding.id}`}
         >
           {aiLoading?.explain === finding.id ? (
-            <>
+            <span aria-live="polite" aria-label="Loading explanation">
               <Spinner size="14px" /> Loading...
-            </>
+            </span>
           ) : (
             '🤖 AI Explain'
           )}

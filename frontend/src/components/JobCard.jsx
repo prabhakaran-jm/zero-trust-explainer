@@ -3,13 +3,14 @@ import Spinner from './Spinner'
 
 function JobCard({ job, isSelected, onSelect, onPropose, onCopyJobId, aiLoading }) {
   const getSeverityColor = (severity) => {
+    // Use colors with AA contrast (WCAG 2.1)
     const colors = {
-      critical: '#dc3545',
-      high: '#fd7e14',
-      medium: '#ffc107',
-      low: '#28a745'
+      critical: '#dc2626', // red-600
+      high: '#f59e0b', // amber-500
+      medium: '#eab308', // yellow-500
+      low: '#16a34a' // green-600
     }
-    return colors[severity] || '#6c757d'
+    return colors[severity] || '#6b7280' // gray-500
   }
 
   const totalFindings = job.finding_count || 0
@@ -111,11 +112,12 @@ function JobCard({ job, isSelected, onSelect, onPropose, onCopyJobId, aiLoading 
             onPropose(job.job_id)
           }}
           disabled={aiLoading?.propose === job.job_id}
+          aria-label={`Propose fixes for job ${job.job_id.substring(0, 8)}`}
         >
           {aiLoading?.propose === job.job_id ? (
-            <>
+            <span aria-live="polite" aria-label="Loading propose fixes">
               <Spinner size="14px" /> Loading...
-            </>
+            </span>
           ) : (
             '🤖 AI Propose'
           )}

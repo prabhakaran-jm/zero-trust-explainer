@@ -122,22 +122,25 @@ function App() {
       const result = await api.submitScan(serviceName, region, projectId)
       const jobId = result.job_id
       
-      notify.ok(`Scan scheduled — job ${jobId.substring(0, 8)}...`)
-      
-      // Start auto-refresh polling for ~20 seconds
-      setAutoRefresh(true)
-      setLoading(false)
-      
-      // Force immediate fetch to check for new job (polling will continue automatically)
-      // Give it a moment for the job to appear in BigQuery
-      setTimeout(() => {
-        fetchJobs()
-      }, 2000)
-      
-      // Also fetch again after a longer delay to catch jobs that take time to process
-      setTimeout(() => {
-        fetchJobs()
-      }, 5000)
+                    notify.ok(`Scan scheduled — job ${jobId.substring(0, 8)}...`)
+                    
+                    // Start auto-refresh polling for ~20 seconds
+                    setAutoRefresh(true)
+                    setLoading(false)
+                    
+                    // Update URL hash for deep linking
+                    window.history.replaceState(null, '', '#jobs')
+                    
+                    // Force immediate fetch to check for new job (polling will continue automatically)
+                    // Give it a moment for the job to appear in BigQuery
+                    setTimeout(() => {
+                        fetchJobs()
+                    }, 2000)
+                    
+                    // Also fetch again after a longer delay to catch jobs that take time to process
+                    setTimeout(() => {
+                        fetchJobs()
+                    }, 5000)
     } catch (err) {
       notify.err('Failed to schedule scan: ' + err.message)
       setError('Failed to submit scan: ' + err.message)
@@ -413,8 +416,8 @@ function App() {
               />
             ))}
             {jobs.length === 0 && !loading && (
-              <div className="no-data">
-                <p>No scan jobs yet. Click Start Scan, then we'll refresh your results.</p>
+              <div className="empty-state" style={{ padding: '2rem', textAlign: 'center', color: '#64748b', fontSize: '0.875rem' }}>
+                No scan jobs yet. Click <strong>Start Scan</strong>, then we'll refresh results.
               </div>
             )}
           </div>
