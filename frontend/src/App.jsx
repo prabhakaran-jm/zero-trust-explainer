@@ -25,6 +25,8 @@ function App() {
   const [currentExplanation, setCurrentExplanation] = useState(null)
   const [showSummary, setShowSummary] = useState(false)
   const [currentSummary, setCurrentSummary] = useState(null)
+  const [parsedSummaryData, setParsedSummaryData] = useState(null)
+  const [summaryError, setSummaryError] = useState(null)
   const [showProposeModal, setShowProposeModal] = useState(false)
   const [proposeContent, setProposeContent] = useState(null)
   const [proposeJobId, setProposeJobId] = useState(null) // Track job ID for retry
@@ -36,6 +38,36 @@ function App() {
     loadJobs()
     checkAIStatus()
   }, [])
+
+  // Effect to safely parse summary data when it changes
+  useEffect(() => {
+    if (!currentSummary) {
+      setParsedSummaryData(null)
+      return
+    }
+
+    try {
+      console.log("Attempting to parse summary data:", currentSummary)
+      let summaryData
+      if (typeof currentSummary.summary === 'string') {
+        summaryData = JSON.parse(currentSummary.summary)
+      } else {
+        summaryData = currentSummary.summary
+      }
+
+      if (typeof summaryData !== 'object' || summaryData === null) {
+        throw new Error("Parsed summary is not a valid object.")
+      }
+      
+      console.log("Successfully parsed summary data:", summaryData)
+      setParsedSummaryData(summaryData)
+      setSummaryError(null) // Clear previous errors
+    } catch (error) {
+      console.error("Failed to parse summary data:", error)
+      setSummaryError("Failed to display summary. The data format is invalid.")
+      setParsedSummaryData(null) // Clear old data
+    }
+  }, [currentSummary])
 
   // Auto-refresh polling after scan
   const fetchJobs = useCallback(async () => {
@@ -217,13 +249,19 @@ function App() {
     try {
       setAiLoading(prev => ({ ...prev, summary: jobId }))
       setError(null)
+      // Reset states before fetching new summary
+      setCurrentSummary(null)
+      setParsedSummaryData(null)
+      setSummaryError(null)
+      setShowSummary(true) // Show modal with loading state immediately
+
       const summary = await api.getSummary(jobId)
-      setCurrentSummary(summary)
-      setShowSummary(true)
+      setCurrentSummary(summary) // This will trigger the useEffect to parse the data
     } catch (err) {
       notify.err('Failed to get summary: ' + err.message)
       setError('Failed to get summary: ' + err.message)
       console.error('Error getting summary:', err)
+      setSummaryError(`Failed to fetch AI summary: ${err.message}`)
     } finally {
       setAiLoading(prev => ({ ...prev, summary: null }))
     }
@@ -301,14 +339,12 @@ function App() {
               message: 'AI response was partially parsed. The analysis may still be processing in the background.'
             }
           } else if (normalized && normalized.summary) {
-            // Use normalized summary if available
             content.summary = normalized.summary
             if (content.summary.raw) {
               content.summary.isFallback = true
               content.summary.message = 'AI response format was unexpected. The analysis may still be processing.'
             }
           } else {
-            // Last resort - show error message
             content.summary = { 
               raw: 'The AI response could not be parsed. The analysis may still be processing in the background. Please click "AI Propose" again to retry.',
               isFallback: true,
@@ -316,7 +352,6 @@ function App() {
             }
           }
           
-          // Still show what we have, even if minimal
           if (normalized) {
             if (normalized.implementationSteps) {
               content.implementationSteps = normalized.implementationSteps
@@ -332,7 +367,6 @@ function App() {
             }
           }
         } else if (normalized) {
-          // Normal response - use normalized data
           if (normalized.summary) {
             content.summary = normalized.summary
           }
@@ -349,7 +383,6 @@ function App() {
             content.terraformCodeBlocks = normalized.terraformCodeBlocks
           }
         } else {
-          // Normalization failed but not a known fallback
           content.summary = { raw: String(result.ai_proposals) }
         }
       }
@@ -629,240 +662,92 @@ function App() {
       )}
 
       {/* AI Summary Modal */}
-      {showSummary && currentSummary && (
+      {showSummary && (
         <div className="modal-overlay" onClick={() => setShowSummary(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>📊 Executive Summary</h3>
-              <button 
-                className="close-btn"
-                onClick={() => setShowSummary(false)}
-              >
-                ✕
-              </button>
+              <h3>
+                📊 Executive Summary
+                {currentSummary?.ai_powered === false && (
+                  <span className="ai-fallback-indicator" title="AI features are currently disabled. This is a rule-based summary."> (Fallback)</span>
+                )}
+              </h3>
+              <button className="modal-close-btn" onClick={() => setShowSummary(false)}>&times;</button>
             </div>
-            
             <div className="modal-body">
-              {(() => {
-                try {
-                  // Extract summary object - backend returns { summary: {...}, ... }
-                  if (!currentSummary) {
-                    return (
-                      <div className="error-message">
-                        <p>No summary data received. Please try again.</p>
-                      </div>
-                    )
-                  }
-                  
-                  let summaryData = currentSummary.summary || currentSummary
-                  
-                  // Ensure summaryData is an object
-                  if (!summaryData || (typeof summaryData !== 'object' && typeof summaryData !== 'string')) {
-                    return (
-                      <div className="error-message">
-                        <p>Invalid summary data format. Please try again.</p>
-                        <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.875rem', background: '#f8f9fa', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-                          {JSON.stringify(currentSummary, null, 2)}
-                        </pre>
-                      </div>
-                    )
-                  }
-                  
-                  // Handle case where summary might be a JSON string
-                  if (typeof summaryData === 'string') {
-                    try {
-                      // Try to parse JSON string
-                      let cleaned = summaryData.trim()
-                      // Remove markdown code blocks if present
-                      cleaned = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/g, '').trim()
-                      // Try to find JSON object in string
-                      const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
-                      if (jsonMatch) {
-                        summaryData = JSON.parse(jsonMatch[0])
-                      } else {
-                        summaryData = JSON.parse(cleaned)
-                      }
-                    } catch (e) {
-                      console.error('Failed to parse summary JSON string:', e)
-                      return (
-                        <div className="error-message">
-                          <p>Failed to parse summary data. Please try again.</p>
-                          <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.875rem', background: '#f8f9fa', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-                            {String(summaryData).substring(0, 500)}
-                          </pre>
-                        </div>
-                      )
-                    }
-                  }
-                  
-                  // Ensure summaryData is still an object after parsing
-                  if (!summaryData || typeof summaryData !== 'object') {
-                    return (
-                      <div className="error-message">
-                        <p>Summary data is invalid after parsing. Please try again.</p>
-                      </div>
-                    )
-                  }
-                  
-                  const aiModel = summaryData.ai_model || currentSummary?.ai_model
-                  const aiPowered = summaryData.ai_powered !== undefined ? summaryData.ai_powered : (currentSummary?.ai_powered !== undefined ? currentSummary.ai_powered : true)
-                  
-                  // Check if this is fallback content (has generic placeholder text)
-                  const isFallback = summaryData.ai_model === 'fallback-analysis' || 
-                                     (summaryData.compliance_status && typeof summaryData.compliance_status === 'string' && summaryData.compliance_status.toLowerCase().includes('manual'))
-                  
-                  // Check if we have any content to display
-                  const hasContent = summaryData.executive_summary || 
-                                     summaryData.risk_overview || 
-                                     (Array.isArray(summaryData.top_concerns) && summaryData.top_concerns.length > 0) ||
-                                     summaryData.compliance_status ||
-                                     summaryData.remediation_roadmap ||
-                                     summaryData.business_impact ||
-                                     (Array.isArray(summaryData.recommendations) && summaryData.recommendations.length > 0) ||
-                                     summaryData.severity_counts
-                
-                  if (!hasContent) {
-                    return (
-                      <div className="empty-state" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
-                        <p>No summary data available. Please try again or check if AI is enabled.</p>
-                        {summaryData && typeof summaryData === 'object' && (
-                          <pre style={{ marginTop: '1rem', fontSize: '0.875rem', background: '#f8f9fa', padding: '1rem', borderRadius: '8px', textAlign: 'left', overflow: 'auto', maxHeight: '200px' }}>
-                            {JSON.stringify(summaryData, null, 2)}
-                          </pre>
-                        )}
-                      </div>
-                    )
-                  }
-                  
-                  return (
-                  <>
-                    {aiPowered && (
-                      <div className="ai-badge" style={{ marginBottom: '1rem' }}>
-                        <span>Powered by {aiModel || 'AI'}</span>
-                        {isFallback && (
-                          <span style={{ marginLeft: '0.5rem', fontSize: '0.875rem', opacity: 0.8 }}>
-                            (Fallback - AI analysis may not be available)
-                          </span>
-                        )}
-                      </div>
-                    )}
+              {aiLoading?.summary && !parsedSummaryData && <Spinner text="Generating AI Summary..." />}
+              
+              {summaryError && <div className="error-message">{summaryError}</div>}
 
-                    {/* Executive Summary */}
-                    {summaryData.executive_summary && (
-                      <div className="explanation-section">
-                        <h4>📋 Executive Summary</h4>
-                        <p>{summaryData.executive_summary}</p>
-                      </div>
-                    )}
+              {parsedSummaryData && !summaryError && (
+                <>
+                  <div className="summary-section">
+                    <h4>Executive Summary</h4>
+                    <p>{parsedSummaryData.executive_summary ?? "No summary available."}</p>
+                  </div>
 
-                    {/* Risk Overview */}
-                    {summaryData.risk_overview && (
-                      <div className="explanation-section">
-                        <h4>⚠️ Risk Overview</h4>
-                        <p>{summaryData.risk_overview}</p>
-                      </div>
-                    )}
-
-                    {/* Top Concerns */}
-                    {summaryData.top_concerns && Array.isArray(summaryData.top_concerns) && summaryData.top_concerns.length > 0 && (
-                      <div className="explanation-section">
-                        <h4>🚨 Top Concerns</h4>
-                        <ul>
-                          {summaryData.top_concerns.map((concern, index) => (
-                            <li key={index}>{concern}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Compliance Status */}
-                    {summaryData.compliance_status && (
-                      <div className="explanation-section">
-                        <h4>📜 Compliance Status</h4>
-                        <p>{summaryData.compliance_status}</p>
-                      </div>
-                    )}
-
-                    {/* Remediation Roadmap */}
-                    {summaryData.remediation_roadmap && (
-                      <div className="explanation-section">
-                        <h4>🛠️ Remediation Roadmap</h4>
-                        <p>{summaryData.remediation_roadmap}</p>
-                      </div>
-                    )}
-
-                    {/* Business Impact */}
-                    {summaryData.business_impact && (
-                      <div className="explanation-section">
-                        <h4>💼 Business Impact</h4>
-                        <p>{summaryData.business_impact}</p>
-                      </div>
-                    )}
-
-                    {/* Recommendations */}
-                    {summaryData.recommendations && Array.isArray(summaryData.recommendations) && summaryData.recommendations.length > 0 && (
-                      <div className="explanation-section">
-                        <h4>💡 Recommendations</h4>
-                        <ul>
-                          {summaryData.recommendations.map((rec, index) => (
-                            <li key={index}>{rec}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Severity Counts */}
-                    {summaryData.severity_counts && (
-                      <div className="explanation-section">
-                        <h4>📊 Findings Breakdown</h4>
-                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                          {summaryData.severity_counts.CRITICAL > 0 && (
-                            <span className="severity-badge critical" style={{ backgroundColor: '#dc2626' }}>
-                              {summaryData.severity_counts.CRITICAL} Critical
-                            </span>
-                          )}
-                          {summaryData.severity_counts.HIGH > 0 && (
-                            <span className="severity-badge high" style={{ backgroundColor: '#f59e0b' }}>
-                              {summaryData.severity_counts.HIGH} High
-                            </span>
-                          )}
-                          {summaryData.severity_counts.MEDIUM > 0 && (
-                            <span className="severity-badge medium" style={{ backgroundColor: '#eab308' }}>
-                              {summaryData.severity_counts.MEDIUM} Medium
-                            </span>
-                          )}
-                          {summaryData.severity_counts.LOW > 0 && (
-                            <span className="severity-badge low" style={{ backgroundColor: '#16a34a' }}>
-                              {summaryData.severity_counts.LOW} Low
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                  )
-                } catch (error) {
-                  console.error('Error rendering summary modal:', error)
-                  return (
-                    <div className="error-message">
-                      <p>An error occurred while displaying the summary.</p>
-                      <p style={{ fontSize: '0.875rem', color: '#dc2626', marginTop: '0.5rem' }}>
-                        {error.message || String(error)}
-                      </p>
-                      <details style={{ marginTop: '1rem', fontSize: '0.75rem' }}>
-                        <summary>Technical details</summary>
-                        <pre style={{ whiteSpace: 'pre-wrap', background: '#f8f9fa', padding: '0.5rem', borderRadius: '4px', marginTop: '0.5rem' }}>
-                          {error.stack || JSON.stringify(error, null, 2)}
-                        </pre>
-                      </details>
+                  <div className="summary-grid">
+                    <div className="summary-card">
+                      <h5>Risk Overview</h5>
+                      <p>{parsedSummaryData.risk_overview ?? "Not available."}</p>
                     </div>
-                  )
-                }
-              })()}
+                    <div className="summary-card">
+                      <h5>Business Impact</h5>
+                      <p>{parsedSummaryData.business_impact ?? "Not available."}</p>
+                    </div>
+                    <div className="summary-card">
+                      <h5>Compliance Status</h5>
+                      <p>{parsedSummaryData.compliance_status ?? "Not available."}</p>
+                    </div>
+                  </div>
+
+                  {parsedSummaryData.severity_counts && (
+                    <div className="summary-section">
+                      <h4>Findings Breakdown</h4>
+                      <div className="severity-counts-grid">
+                        {Object.entries(parsedSummaryData.severity_counts).map(([severity, count]) => (
+                          <div key={severity} className={`severity-count-card severity-${severity.toLowerCase()}`}>
+                            <span className="severity-count">{count}</span>
+                            <span className="severity-label">{severity}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {parsedSummaryData.top_concerns?.length > 0 && (
+                    <div className="summary-section">
+                      <h4>Top Concerns</h4>
+                      <ul>
+                        {parsedSummaryData.top_concerns.map((concern, index) => (
+                          <li key={index}>{concern}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="summary-section">
+                    <h4>Remediation Roadmap</h4>
+                    <p>{parsedSummaryData.remediation_roadmap ?? "No roadmap available."}</p>
+                  </div>
+
+                  {parsedSummaryData.recommendations?.length > 0 && (
+                    <div className="summary-section">
+                      <h4>Strategic Recommendations</h4>
+                      <ul>
+                        {parsedSummaryData.recommendations.map((rec, index) => (
+                          <li key={index}>{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
       )}
+
 
       {/* AI Propose Modal */}
       {showProposeModal && proposeContent && (
