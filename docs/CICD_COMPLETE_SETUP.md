@@ -114,6 +114,8 @@ The setup script grants these roles:
 | `roles/storage.admin` | Access to Artifact Registry (push/pull images) |
 | `roles/run.admin` | Deploy and manage Cloud Run services |
 | `roles/iam.serviceAccountUser` | Act as other service accounts |
+| `roles/resourcemanager.projectIamAdmin` | Manage project-level IAM policies (required for Terraform) |
+| `roles/iam.serviceAccountAdmin` | Create and manage service accounts (required for Terraform) |
 | `roles/artifactregistry.admin` | Manage Artifact Registry repositories |
 | `roles/pubsub.admin` | Manage Pub/Sub topics/subscriptions |
 | `roles/bigquery.admin` | Manage BigQuery datasets/tables |
@@ -136,6 +138,14 @@ gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
 gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
   --member="serviceAccount:${SERVICE_ACCOUNT}" \
   --role="roles/run.admin"
+
+gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
+  --member="serviceAccount:${SERVICE_ACCOUNT}" \
+  --role="roles/resourcemanager.projectIamAdmin"
+
+gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
+  --member="serviceAccount:${SERVICE_ACCOUNT}" \
+  --role="roles/iam.serviceAccountAdmin"
 
 # ... repeat for other roles
 ```
@@ -243,7 +253,30 @@ gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
 - Check service account has Terraform permissions
 - Verify Secret Manager secret exists (if using)
 
-#### 7. Secret Manager Issues
+#### 7. Terraform Plan Fails - IAM Permission Denied
+
+**Problem**: `Error retrieving IAM policy for project` or `Permission 'iam.serviceAccounts.getIamPolicy' denied`
+
+**Solutions**:
+- The GitHub Actions service account needs:
+  - `roles/resourcemanager.projectIamAdmin` to manage project-level IAM policies
+  - `roles/iam.serviceAccountAdmin` to create/manage service accounts and their IAM policies
+- Grant both roles manually:
+  ```bash
+  # Project IAM Admin
+  gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
+    --member="serviceAccount:zte-deployer@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+    --role="roles/resourcemanager.projectIamAdmin"
+  
+  # Service Account Admin
+  gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
+    --member="serviceAccount:zte-deployer@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+    --role="roles/iam.serviceAccountAdmin"
+  ```
+- Or re-run the setup script (it now includes both roles)
+- After granting the roles, re-run the GitHub Actions workflow
+
+#### 8. Secret Manager Issues
 
 **Problem**: `Secret not found` or `Permission denied`
 

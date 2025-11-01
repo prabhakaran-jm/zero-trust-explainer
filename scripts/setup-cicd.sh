@@ -44,6 +44,8 @@ ROLES=(
     "roles/storage.admin"
     "roles/run.admin"
     "roles/iam.serviceAccountUser"
+    "roles/resourcemanager.projectIamAdmin"
+    "roles/iam.serviceAccountAdmin"
     "roles/artifactregistry.admin"
     "roles/pubsub.admin"
     "roles/bigquery.admin"
