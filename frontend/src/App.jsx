@@ -59,6 +59,47 @@ function App() {
         throw new Error("Parsed summary is not a valid object.")
       }
       
+      // Helper function to safely convert any value to string
+      const safeToString = (value, fallback = '') => {
+        if (value === null || value === undefined) return fallback
+        if (typeof value === 'string') return value
+        if (typeof value === 'object') {
+          // Try to extract meaningful string from object
+          return value.text || value.description || value.summary || JSON.stringify(value)
+        }
+        return String(value)
+      }
+      
+      // Normalize string fields to ensure they're always strings
+      summaryData.executive_summary = safeToString(summaryData.executive_summary, 'No summary available.')
+      summaryData.risk_overview = safeToString(summaryData.risk_overview, 'Not available.')
+      summaryData.business_impact = safeToString(summaryData.business_impact, 'Not available.')
+      summaryData.compliance_status = safeToString(summaryData.compliance_status, 'Not available.')
+      summaryData.remediation_roadmap = safeToString(summaryData.remediation_roadmap, 'No roadmap available.')
+      
+      // Normalize arrays to ensure they contain strings, not objects
+      if (summaryData.top_concerns && Array.isArray(summaryData.top_concerns)) {
+        summaryData.top_concerns = summaryData.top_concerns.map(item => {
+          if (typeof item === 'string') return item
+          if (typeof item === 'object' && item !== null) {
+            // Convert object to string representation
+            return item.issue || item.description || item.title || JSON.stringify(item)
+          }
+          return String(item)
+        })
+      }
+      
+      if (summaryData.recommendations && Array.isArray(summaryData.recommendations)) {
+        summaryData.recommendations = summaryData.recommendations.map(item => {
+          if (typeof item === 'string') return item
+          if (typeof item === 'object' && item !== null) {
+            // Convert object to string representation
+            return item.recommendation || item.suggestion || item.text || JSON.stringify(item)
+          }
+          return String(item)
+        })
+      }
+      
       console.log("Successfully parsed summary data:", summaryData)
       setParsedSummaryData(summaryData)
       setSummaryError(null) // Clear previous errors
@@ -721,9 +762,15 @@ function App() {
                     <div className="summary-section">
                       <h4>Top Concerns</h4>
                       <ul>
-                        {parsedSummaryData.top_concerns.map((concern, index) => (
-                          <li key={index}>{concern}</li>
-                        ))}
+                        {parsedSummaryData.top_concerns.map((concern, index) => {
+                          // Ensure we always render a string, not an object
+                          const displayText = typeof concern === 'string' 
+                            ? concern 
+                            : (typeof concern === 'object' && concern !== null
+                              ? (concern.issue || concern.description || concern.title || JSON.stringify(concern))
+                              : String(concern))
+                          return <li key={index}>{displayText}</li>
+                        })}
                       </ul>
                     </div>
                   )}
@@ -737,9 +784,15 @@ function App() {
                     <div className="summary-section">
                       <h4>Strategic Recommendations</h4>
                       <ul>
-                        {parsedSummaryData.recommendations.map((rec, index) => (
-                          <li key={index}>{rec}</li>
-                        ))}
+                        {parsedSummaryData.recommendations.map((rec, index) => {
+                          // Ensure we always render a string, not an object
+                          const displayText = typeof rec === 'string' 
+                            ? rec 
+                            : (typeof rec === 'object' && rec !== null
+                              ? (rec.recommendation || rec.suggestion || rec.text || JSON.stringify(rec))
+                              : String(rec))
+                          return <li key={index}>{displayText}</li>
+                        })}
                       </ul>
                     </div>
                   )}
