@@ -11,9 +11,22 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Set build-time environment variable
+# Set build-time environment variables
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
+
+# Optional: Quick links for header
+ARG VITE_DEMO_VIDEO_URL
+ENV VITE_DEMO_VIDEO_URL=$VITE_DEMO_VIDEO_URL
+
+ARG VITE_REPO_URL
+ENV VITE_REPO_URL=$VITE_REPO_URL
+
+ARG VITE_ARCH_URL
+ENV VITE_ARCH_URL=$VITE_ARCH_URL
+
+ARG VITE_AI_STUDIO_URL
+ENV VITE_AI_STUDIO_URL=$VITE_AI_STUDIO_URL
 
 # Build the app
 RUN npm run build
