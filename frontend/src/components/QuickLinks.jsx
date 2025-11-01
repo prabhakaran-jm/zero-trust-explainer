@@ -14,11 +14,14 @@ function withUtm(url, label) {
 }
 
 export default function QuickLinks() {
+  // Read from runtime config (injected by entrypoint.sh) or fallback to build-time env vars
+  const config = window.__APP_CONFIG__ || {};
+  
   const links = [
-    { label: 'Video', href: import.meta.env.VITE_DEMO_VIDEO_URL, icon: IconVideo },
-    { label: 'Repo', href: import.meta.env.VITE_REPO_URL, icon: IconRepo },
-    { label: 'Architecture', href: import.meta.env.VITE_ARCH_URL, icon: IconArch },
-    { label: 'AI Studio', href: import.meta.env.VITE_AI_STUDIO_URL, icon: IconAIStudio },
+    { label: 'Video', href: config.DEMO_VIDEO_URL || import.meta.env.VITE_DEMO_VIDEO_URL, icon: IconVideo },
+    { label: 'Repo', href: config.REPO_URL || import.meta.env.VITE_REPO_URL, icon: IconRepo },
+    { label: 'Architecture', href: config.ARCH_URL || import.meta.env.VITE_ARCH_URL, icon: IconArch },
+    { label: 'AI Studio', href: config.AI_STUDIO_URL || import.meta.env.VITE_AI_STUDIO_URL, icon: IconAIStudio },
   ].filter(x => (x?.href || '').trim().length > 0);
 
   if (!links.length) return null;

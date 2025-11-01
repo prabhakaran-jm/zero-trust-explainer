@@ -44,3 +44,27 @@ variable "max_instances" {
   type        = number
   default     = 10
 }
+
+variable "demo_video_url" {
+  description = "URL to demo video (optional - for QuickLinks)"
+  type        = string
+  default     = ""
+}
+
+variable "repo_url" {
+  description = "URL to GitHub repository (optional - for QuickLinks)"
+  type        = string
+  default     = ""
+}
+
+variable "arch_url" {
+  description = "URL to architecture diagram (optional - for QuickLinks)"
+  type        = string
+  default     = ""
+}
+
+variable "ai_studio_url" {
+  description = "URL to AI Studio prompts (optional - for QuickLinks)"
+  type        = string
+  default     = ""
+}

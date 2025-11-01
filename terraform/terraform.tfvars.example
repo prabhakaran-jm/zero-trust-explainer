@@ -57,3 +57,22 @@ gemini_api_key = ""  # Optional - only for initial secret creation
 # Environment name (dev, staging, prod)
 # environment = "prod"
 
+# ============================================================================
+# Optional Variables - Quick Links URLs
+# ============================================================================
+
+# These URLs will be shown in the frontend header as quick links
+# All are optional - leave commented out if not needed
+
+# URL to demo video (e.g., YouTube, Vimeo)
+# demo_video_url = "https://www.youtube.com/watch?v=your-video-id"
+
+# URL to GitHub repository
+# repo_url = "https://github.com/your-username/your-repo"
+
+# URL to architecture diagram (e.g., hosted image, Miro, Excalidraw)
+# arch_url = "https://example.com/architecture-diagram.png"
+
+# URL to AI Studio prompts/app (using Share App functionality)
+# ai_studio_url = "https://aistudio.google.com/app/YOUR_APP_ID"
+

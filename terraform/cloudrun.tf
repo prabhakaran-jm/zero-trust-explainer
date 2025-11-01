@@ -110,6 +110,39 @@ resource "google_cloud_run_v2_service" "frontend" {
         value = google_cloud_run_v2_service.backend_api.uri
       }
 
+      # Optional: Quick Links URLs (for runtime config injection)
+      dynamic "env" {
+        for_each = var.demo_video_url != "" ? [1] : []
+        content {
+          name  = "VITE_DEMO_VIDEO_URL"
+          value = var.demo_video_url
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.repo_url != "" ? [1] : []
+        content {
+          name  = "VITE_REPO_URL"
+          value = var.repo_url
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.arch_url != "" ? [1] : []
+        content {
+          name  = "VITE_ARCH_URL"
+          value = var.arch_url
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.ai_studio_url != "" ? [1] : []
+        content {
+          name  = "VITE_AI_STUDIO_URL"
+          value = var.ai_studio_url
+        }
+      }
+
       resources {
         limits = {
           cpu    = "1"

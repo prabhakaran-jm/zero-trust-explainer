@@ -1,8 +1,12 @@
 #!/bin/sh
 # Entrypoint script that injects runtime config into the frontend
 
-# Read API URL from environment variable (set by Cloud Run)
+# Read environment variables (set by Cloud Run)
 API_URL=${VITE_API_URL:-""}
+DEMO_VIDEO_URL=${VITE_DEMO_VIDEO_URL:-""}
+REPO_URL=${VITE_REPO_URL:-""}
+ARCH_URL=${VITE_ARCH_URL:-""}
+AI_STUDIO_URL=${VITE_AI_STUDIO_URL:-""}
 
 # Log for debugging (visible in Cloud Run logs)
 if [ -z "$API_URL" ]; then
@@ -11,11 +15,15 @@ else
   echo "Injecting API URL: $API_URL"
 fi
 
-# Generate config.js file with the API URL
-# Use proper JSON escaping for the URL
+# Generate config.js file with all runtime config values
+# Use proper JSON escaping for URLs
 cat > /usr/share/nginx/html/config.js <<EOF
 window.__APP_CONFIG__ = {
-  API_URL: "${API_URL}"
+  API_URL: "${API_URL}",
+  DEMO_VIDEO_URL: "${DEMO_VIDEO_URL}",
+  REPO_URL: "${REPO_URL}",
+  ARCH_URL: "${ARCH_URL}",
+  AI_STUDIO_URL: "${AI_STUDIO_URL}"
 };
 EOF
 
