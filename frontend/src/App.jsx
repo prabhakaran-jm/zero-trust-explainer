@@ -23,10 +23,12 @@ function App() {
   const [aiStatus, setAiStatus] = useState(null)
   const [showExplanation, setShowExplanation] = useState(false)
   const [currentExplanation, setCurrentExplanation] = useState(null)
+  const [showSummary, setShowSummary] = useState(false)
+  const [currentSummary, setCurrentSummary] = useState(null)
   const [showProposeModal, setShowProposeModal] = useState(false)
   const [proposeContent, setProposeContent] = useState(null)
   const [proposeJobId, setProposeJobId] = useState(null) // Track job ID for retry
-  const [aiLoading, setAiLoading] = useState({ explain: null, propose: null })
+  const [aiLoading, setAiLoading] = useState({ explain: null, propose: null, summary: null })
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [findingsError, setFindingsError] = useState(null)
 
@@ -208,6 +210,22 @@ function App() {
       console.error('Error getting explanation:', err)
     } finally {
       setAiLoading(prev => ({ ...prev, explain: null }))
+    }
+  }
+
+  const handleSummary = async (jobId) => {
+    try {
+      setAiLoading(prev => ({ ...prev, summary: jobId }))
+      setError(null)
+      const summary = await api.getSummary(jobId)
+      setCurrentSummary(summary)
+      setShowSummary(true)
+    } catch (err) {
+      notify.err('Failed to get summary: ' + err.message)
+      setError('Failed to get summary: ' + err.message)
+      console.error('Error getting summary:', err)
+    } finally {
+      setAiLoading(prev => ({ ...prev, summary: null }))
     }
   }
 
@@ -439,6 +457,7 @@ function App() {
                     }
                   }, 50)
                 }}
+                onSummary={handleSummary}
                 onPropose={handlePropose}
                 onCopyJobId={handleCopyJobId}
                 aiLoading={aiLoading}
@@ -604,6 +623,124 @@ function App() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Summary Modal */}
+      {showSummary && currentSummary && (
+        <div className="modal-overlay" onClick={() => setShowSummary(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>📊 Executive Summary</h3>
+              <button 
+                className="close-btn"
+                onClick={() => setShowSummary(false)}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              {currentSummary.ai_powered && (
+                <div className="ai-badge" style={{ marginBottom: '1rem' }}>
+                  <span>Powered by {currentSummary.ai_model || 'AI'}</span>
+                </div>
+              )}
+
+              {/* Executive Summary */}
+              {currentSummary.executive_summary && (
+                <div className="explanation-section">
+                  <h4>📋 Executive Summary</h4>
+                  <p>{currentSummary.executive_summary}</p>
+                </div>
+              )}
+
+              {/* Risk Overview */}
+              {currentSummary.risk_overview && (
+                <div className="explanation-section">
+                  <h4>⚠️ Risk Overview</h4>
+                  <p>{currentSummary.risk_overview}</p>
+                </div>
+              )}
+
+              {/* Top Concerns */}
+              {currentSummary.top_concerns && Array.isArray(currentSummary.top_concerns) && currentSummary.top_concerns.length > 0 && (
+                <div className="explanation-section">
+                  <h4>🚨 Top Concerns</h4>
+                  <ul>
+                    {currentSummary.top_concerns.map((concern, index) => (
+                      <li key={index}>{concern}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Compliance Status */}
+              {currentSummary.compliance_status && (
+                <div className="explanation-section">
+                  <h4>📜 Compliance Status</h4>
+                  <p>{currentSummary.compliance_status}</p>
+                </div>
+              )}
+
+              {/* Remediation Roadmap */}
+              {currentSummary.remediation_roadmap && (
+                <div className="explanation-section">
+                  <h4>🛠️ Remediation Roadmap</h4>
+                  <p>{currentSummary.remediation_roadmap}</p>
+                </div>
+              )}
+
+              {/* Business Impact */}
+              {currentSummary.business_impact && (
+                <div className="explanation-section">
+                  <h4>💼 Business Impact</h4>
+                  <p>{currentSummary.business_impact}</p>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {currentSummary.recommendations && Array.isArray(currentSummary.recommendations) && currentSummary.recommendations.length > 0 && (
+                <div className="explanation-section">
+                  <h4>💡 Recommendations</h4>
+                  <ul>
+                    {currentSummary.recommendations.map((rec, index) => (
+                      <li key={index}>{rec}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Severity Counts */}
+              {currentSummary.severity_counts && (
+                <div className="explanation-section">
+                  <h4>📊 Findings Breakdown</h4>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    {currentSummary.severity_counts.CRITICAL > 0 && (
+                      <span className="severity-badge critical" style={{ backgroundColor: '#dc2626' }}>
+                        {currentSummary.severity_counts.CRITICAL} Critical
+                      </span>
+                    )}
+                    {currentSummary.severity_counts.HIGH > 0 && (
+                      <span className="severity-badge high" style={{ backgroundColor: '#f59e0b' }}>
+                        {currentSummary.severity_counts.HIGH} High
+                      </span>
+                    )}
+                    {currentSummary.severity_counts.MEDIUM > 0 && (
+                      <span className="severity-badge medium" style={{ backgroundColor: '#eab308' }}>
+                        {currentSummary.severity_counts.MEDIUM} Medium
+                      </span>
+                    )}
+                    {currentSummary.severity_counts.LOW > 0 && (
+                      <span className="severity-badge low" style={{ backgroundColor: '#16a34a' }}>
+                        {currentSummary.severity_counts.LOW} Low
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

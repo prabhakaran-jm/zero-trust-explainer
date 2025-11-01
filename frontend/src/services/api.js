@@ -106,4 +106,15 @@ export const api = {
 
     return response.json()
   },
+
+  async getSummary(jobId) {
+    const response = await fetch(`${API_BASE_URL}/summary/${jobId}`)
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.detail || 'Failed to get summary')
+    }
+
+    return response.json()
+  },
 }

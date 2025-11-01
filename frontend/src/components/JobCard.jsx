@@ -1,7 +1,7 @@
 import './JobCard.css'
 import Spinner from './Spinner'
 
-function JobCard({ job, isSelected, onSelect, onPropose, onCopyJobId, aiLoading }) {
+function JobCard({ job, isSelected, onSelect, onSummary, onPropose, onCopyJobId, aiLoading }) {
   const getSeverityColor = (severity) => {
     // Use colors with AA contrast (WCAG 2.1)
     const colors = {
@@ -105,23 +105,44 @@ function JobCard({ job, isSelected, onSelect, onPropose, onCopyJobId, aiLoading 
         <small>
           {job.first_finding_at && new Date(job.first_finding_at).toLocaleString()}
         </small>
-        <button 
-          className="propose-btn ai-powered-btn"
-          onClick={(e) => {
-            e.stopPropagation()
-            onPropose(job.job_id)
-          }}
-          disabled={aiLoading?.propose === job.job_id}
-          aria-label={`Propose fixes for job ${job.job_id.substring(0, 8)}`}
-        >
-          {aiLoading?.propose === job.job_id ? (
-            <span aria-live="polite" aria-label="Loading propose fixes">
-              <Spinner size="14px" /> Loading...
-            </span>
-          ) : (
-            '🤖 AI Propose'
-          )}
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button 
+            className="summary-btn ai-powered-btn"
+            onClick={(e) => {
+              e.stopPropagation()
+              onSummary(job.job_id)
+            }}
+            disabled={aiLoading?.summary === job.job_id}
+            aria-label={`Get summary for job ${job.job_id.substring(0, 8)}`}
+            style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
+          >
+            {aiLoading?.summary === job.job_id ? (
+              <span aria-live="polite" aria-label="Loading summary">
+                <Spinner size="12px" /> Loading...
+              </span>
+            ) : (
+              '📊 AI Summary'
+            )}
+          </button>
+          <button 
+            className="propose-btn ai-powered-btn"
+            onClick={(e) => {
+              e.stopPropagation()
+              onPropose(job.job_id)
+            }}
+            disabled={aiLoading?.propose === job.job_id}
+            aria-label={`Propose fixes for job ${job.job_id.substring(0, 8)}`}
+            style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
+          >
+            {aiLoading?.propose === job.job_id ? (
+              <span aria-live="polite" aria-label="Loading propose fixes">
+                <Spinner size="12px" /> Loading...
+              </span>
+            ) : (
+              '🤖 AI Propose'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )
