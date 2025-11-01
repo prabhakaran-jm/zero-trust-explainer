@@ -79,19 +79,27 @@ function App() {
       // Preserve remediation_roadmap as-is if it's an object/JSON (for nice formatting)
       // Only convert to string if it's not an object
       if (summaryData.remediation_roadmap) {
+        console.log("Parsing remediation_roadmap in useEffect - type:", typeof summaryData.remediation_roadmap)
+        console.log("Parsing remediation_roadmap in useEffect - value:", summaryData.remediation_roadmap)
         if (typeof summaryData.remediation_roadmap === 'object' && summaryData.remediation_roadmap !== null) {
           // Keep as object for structured formatting
+          console.log("Roadmap is already an object, keeping as-is. Is array?", Array.isArray(summaryData.remediation_roadmap))
           // Do nothing - keep the object
         } else if (typeof summaryData.remediation_roadmap === 'string') {
           // Try to parse JSON string, but keep original if parsing fails
           try {
-            if (summaryData.remediation_roadmap.trim().startsWith('{') || summaryData.remediation_roadmap.trim().startsWith('[')) {
+            const trimmed = summaryData.remediation_roadmap.trim()
+            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
               const parsed = JSON.parse(summaryData.remediation_roadmap)
+              console.log("Parsed roadmap in useEffect:", parsed)
+              console.log("Parsed is array?", Array.isArray(parsed))
               if (typeof parsed === 'object' && parsed !== null) {
                 summaryData.remediation_roadmap = parsed
+                console.log("Set roadmap to parsed object")
               }
             }
           } catch (e) {
+            console.warn("Failed to parse roadmap in useEffect:", e)
             // Keep as string if parsing fails
           }
         }
@@ -803,15 +811,23 @@ function App() {
                         return <p>No roadmap available.</p>
                       }
                       
+                      // Debug logging
+                      console.log("Remediation Roadmap type:", typeof roadmap)
+                      console.log("Remediation Roadmap value:", roadmap)
+                      
                       // Try to parse JSON string if it's a string
                       let parsedRoadmap = roadmap
                       if (typeof roadmap === 'string') {
                         try {
-                          // Check if it's JSON
-                          if (roadmap.trim().startsWith('{') || roadmap.trim().startsWith('[')) {
+                          // Check if it's JSON - handle multiline strings too
+                          const trimmed = roadmap.trim()
+                          if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
                             parsedRoadmap = JSON.parse(roadmap)
+                            console.log("Parsed roadmap:", parsedRoadmap)
+                            console.log("Is array?", Array.isArray(parsedRoadmap))
                           }
                         } catch (e) {
+                          console.warn("Failed to parse roadmap JSON:", e)
                           // Not JSON, use as string
                           parsedRoadmap = roadmap
                         }
@@ -819,6 +835,11 @@ function App() {
                       
                       // If it's an object with phases, format it nicely
                       if (typeof parsedRoadmap === 'object' && parsedRoadmap !== null) {
+                        console.log("Roadmap is object, checking structure...")
+                        console.log("Is array?", Array.isArray(parsedRoadmap))
+                        console.log("Has phases property?", parsedRoadmap.phases)
+                        console.log("Keys:", Object.keys(parsedRoadmap))
+                        
                         // Helper function to render a phase
                         const renderPhase = (phase, index) => {
                           // Extract phase name from phase.phase or phase.name or default to "Phase {index + 1}"
@@ -869,21 +890,29 @@ function App() {
                         
                         // Check if it's directly an array of phases
                         if (Array.isArray(parsedRoadmap)) {
-                          return (
-                            <div className="remediation-roadmap-phases">
-                              {parsedRoadmap.map(renderPhase)}
-                            </div>
-                          )
+                          console.log("Rendering as direct array with", parsedRoadmap.length, "phases")
+                          if (parsedRoadmap.length > 0) {
+                            return (
+                              <div className="remediation-roadmap-phases">
+                                {parsedRoadmap.map(renderPhase)}
+                              </div>
+                            )
+                          }
                         }
                         
                         // Check if it has phases array
                         if (parsedRoadmap.phases && Array.isArray(parsedRoadmap.phases)) {
-                          return (
-                            <div className="remediation-roadmap-phases">
-                              {parsedRoadmap.phases.map(renderPhase)}
-                            </div>
-                          )
+                          console.log("Rendering as phases property with", parsedRoadmap.phases.length, "phases")
+                          if (parsedRoadmap.phases.length > 0) {
+                            return (
+                              <div className="remediation-roadmap-phases">
+                                {parsedRoadmap.phases.map(renderPhase)}
+                              </div>
+                            )
+                          }
                         }
+                        
+                        console.warn("Roadmap object doesn't match expected format, falling back to JSON display")
                         // If it's just an object, try to display it formatted
                         return (
                           <div className="remediation-roadmap">
@@ -892,6 +921,7 @@ function App() {
                         )
                       }
                       
+                      console.log("Roadmap is not an object, displaying as plain text")
                       // Otherwise, display as plain text
                       return <p className="remediation-roadmap">{parsedRoadmap}</p>
                     })()}
