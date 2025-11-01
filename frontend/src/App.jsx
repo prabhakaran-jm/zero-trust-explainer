@@ -72,7 +72,8 @@ function App() {
 
   const checkAIStatus = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/`)
+      const apiUrl = (window.__APP_CONFIG__?.API_URL) || import.meta.env.VITE_API_URL || 'http://localhost:8080'
+      const response = await fetch(`${apiUrl}/`)
       const data = await response.json()
       setAiStatus(data.ai_studio)
     } catch (err) {

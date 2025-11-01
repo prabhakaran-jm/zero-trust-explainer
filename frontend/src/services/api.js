@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+// Read API URL from runtime config (injected by entrypoint.sh) or fallback to build-time env var
+const API_BASE_URL = (window.__APP_CONFIG__?.API_URL) || import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
 export const api = {
   async submitScan(serviceName, region, projectId) {

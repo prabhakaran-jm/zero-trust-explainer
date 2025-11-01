@@ -40,6 +40,11 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+# Copy and make entrypoint script executable
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 8080
 
-CMD ["nginx", "-g", "daemon off;"]
+# Use entrypoint script to inject runtime config
+ENTRYPOINT ["/entrypoint.sh"]
