@@ -1,59 +1,50 @@
 import './FindingsList.css'
+import FindingCard from './FindingCard'
+import Spinner from './Spinner'
 
-function FindingsList({ findings, onExplain, loading, aiLoading }) {
-  const getSeverityColor = (severity) => {
-    const colors = {
-      critical: '#dc3545',
-      high: '#fd7e14',
-      medium: '#ffc107',
-      low: '#28a745'
-    }
-    return colors[severity?.toLowerCase()] || '#6c757d'
+function FindingsList({ findings, onExplain, loading, aiLoading, error }) {
+  if (loading) {
+    return (
+      <div className="loading" aria-live="polite">
+        <Spinner /> Loading findings...
+      </div>
+    )
   }
 
-  if (loading) {
-    return <div className="loading">Loading findings...</div>
+  if (error) {
+    // Check for BigQuery configuration errors
+    if (error.includes('500') || error.includes('404') || error.includes('BigQuery')) {
+      return (
+        <div className="error-banner" role="alert">
+          <strong>⚠️ Findings unavailable</strong>
+          <p>BigQuery not configured. Ask operator to set GCP_PROJECT_ID & BQ_DATASET on API.</p>
+        </div>
+      )
+    }
+    return (
+      <div className="error-banner" role="alert">
+        {error}
+      </div>
+    )
   }
 
   if (findings.length === 0) {
-    return <div className="no-findings">No findings for this job.</div>
+    return (
+      <div className="no-findings">
+        <p>No findings for this job. Try another job or run a new scan.</p>
+      </div>
+    )
   }
 
   return (
     <div className="findings-list">
       {findings.map((finding) => (
-        <div key={finding.id} className="finding-card">
-          <div className="finding-header">
-            <span 
-              className="severity-badge" 
-              style={{ background: getSeverityColor(finding.severity) }}
-            >
-              {finding.severity}
-            </span>
-            <span className="resource-type">{finding.resource_type}</span>
-          </div>
-
-          <h4 className="resource-name">{finding.resource_name}</h4>
-          
-          <p className="issue-description">{finding.issue_description}</p>
-          
-          <div className="recommendation">
-            <strong>Recommendation:</strong> {finding.recommendation}
-          </div>
-
-          <div className="finding-footer">
-            <small className="finding-time">
-              {finding.created_at && new Date(finding.created_at).toLocaleString()}
-            </small>
-            <button 
-              className="explain-btn ai-powered-btn"
-              onClick={() => onExplain(finding.id)}
-              disabled={aiLoading?.explain === finding.id}
-            >
-              {aiLoading?.explain === finding.id ? '⏳ Loading...' : '🤖 AI Explain'}
-            </button>
-          </div>
-        </div>
+        <FindingCard
+          key={finding.id}
+          finding={finding}
+          onExplain={onExplain}
+          aiLoading={aiLoading}
+        />
       ))}
     </div>
   )
