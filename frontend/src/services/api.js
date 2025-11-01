@@ -1,5 +1,24 @@
 // Read API URL from runtime config (injected by entrypoint.sh) or fallback to build-time env var
-const API_BASE_URL = (window.__APP_CONFIG__?.API_URL) || import.meta.env.VITE_API_URL || 'http://localhost:8080'
+// Log for debugging
+const getApiUrl = () => {
+  const runtimeUrl = window.__APP_CONFIG__?.API_URL
+  const buildTimeUrl = import.meta.env.VITE_API_URL
+  const fallbackUrl = 'http://localhost:8080'
+  
+  const apiUrl = runtimeUrl || buildTimeUrl || fallbackUrl
+  
+  // Log for debugging (always - helps debug production issues)
+  console.log('API URL config:', {
+    runtime: runtimeUrl,
+    buildTime: buildTimeUrl,
+    final: apiUrl,
+    hasWindowConfig: !!window.__APP_CONFIG__
+  })
+  
+  return apiUrl
+}
+
+const API_BASE_URL = getApiUrl()
 
 export const api = {
   async submitScan(serviceName, region, projectId) {
@@ -24,14 +43,22 @@ export const api = {
   },
 
   async listJobs(limit = 50) {
-    const response = await fetch(`${API_BASE_URL}/jobs?limit=${limit}`)
+    try {
+      const url = `${API_BASE_URL}/jobs?limit=${limit}`
+      console.log('Fetching jobs from:', url)
+      const response = await fetch(url)
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.detail || 'Failed to list jobs')
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: `HTTP ${response.status}: ${response.statusText}` }))
+        console.error('Failed to list jobs:', error, 'URL:', url)
+        throw new Error(error.detail || 'Failed to list jobs')
+      }
+
+      return response.json()
+    } catch (err) {
+      console.error('Error in listJobs:', err, 'API_BASE_URL:', API_BASE_URL)
+      throw err
     }
-
-    return response.json()
   },
 
   async getFindings(jobId, severity = '') {

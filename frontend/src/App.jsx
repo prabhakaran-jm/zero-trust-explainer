@@ -343,7 +343,7 @@ function App() {
           <div className="header-right">
             <div className="header-right-content">
               <QuickLinks />
-              <HealthChip apiBase={import.meta.env.VITE_API_URL || 'http://localhost:8080'} />
+              <HealthChip apiBase={(window.__APP_CONFIG__?.API_URL) || import.meta.env.VITE_API_URL || 'http://localhost:8080'} />
             </div>
           </div>
         </div>
