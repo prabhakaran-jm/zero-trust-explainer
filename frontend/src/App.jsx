@@ -315,14 +315,13 @@ function App() {
     }
   }
 
-  // Quick links from env vars
-  const quickLinks = {
-    video: import.meta.env.VITE_DEMO_VIDEO_URL,
-    repo: import.meta.env.VITE_REPO_URL,
-    architecture: import.meta.env.VITE_ARCH_URL,
-    aiStudio: import.meta.env.VITE_AI_STUDIO_URL
-  }
-  const hasQuickLinks = Object.values(quickLinks).some(Boolean)
+  // Quick links from env vars - only show if values exist
+  const links = [
+    { label: 'Video', href: import.meta.env.VITE_DEMO_VIDEO_URL },
+    { label: 'Repo', href: import.meta.env.VITE_REPO_URL },
+    { label: 'Architecture', href: import.meta.env.VITE_ARCH_URL },
+    { label: 'AI Studio', href: import.meta.env.VITE_AI_STUDIO_URL }
+  ].filter(x => !!x.href)
 
   return (
     <div className="App">
@@ -334,30 +333,20 @@ function App() {
           </div>
           <div className="header-right">
             <HealthChip apiBase={import.meta.env.VITE_API_URL || 'http://localhost:8080'} />
-            {hasQuickLinks && (
-              <div className="quick-links">
-                {quickLinks.video && (
-                  <a href={quickLinks.video} target="_blank" rel="noreferrer">Video</a>
-                )}
-                {quickLinks.repo && (
-                  <>
-                    {quickLinks.video && ' · '}
-                    <a href={quickLinks.repo} target="_blank" rel="noreferrer">Repo</a>
-                  </>
-                )}
-                {quickLinks.architecture && (
-                  <>
-                    {(quickLinks.video || quickLinks.repo) && ' · '}
-                    <a href={quickLinks.architecture} target="_blank" rel="noreferrer">Architecture</a>
-                  </>
-                )}
-                {quickLinks.aiStudio && (
-                  <>
-                    {(quickLinks.video || quickLinks.repo || quickLinks.architecture) && ' · '}
-                    <a href={quickLinks.aiStudio} target="_blank" rel="noreferrer">AI Studio</a>
-                  </>
-                )}
-              </div>
+            {links.length > 0 && (
+              <nav className="quick-links">
+                {links.map(l => (
+                  <a 
+                    key={l.label} 
+                    href={l.href} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="quick-link-item"
+                  >
+                    {l.label}
+                  </a>
+                ))}
+              </nav>
             )}
           </div>
         </div>
