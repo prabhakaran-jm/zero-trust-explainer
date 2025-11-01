@@ -94,8 +94,24 @@
   background: #218838;
 }
 
+.summary-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.2s;
+}
+
+.summary-btn:hover {
+  background: #5568d3;
+}
+
 .ai-powered-btn {
   background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
   position: relative;
   overflow: hidden;
 }
@@ -119,4 +135,13 @@
   background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.summary-btn.ai-powered-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.summary-btn.ai-powered-btn:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #6a4190 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
