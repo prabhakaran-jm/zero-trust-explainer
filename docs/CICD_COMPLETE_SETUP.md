@@ -93,14 +93,14 @@ Remove-Item github-actions-key.json
 ```bash
 git add .
 git commit -m "Setup CI/CD"
-git push origin main
+git push origin master
 ```
 
 **Option B: Manual Trigger**
 1. Go to **Actions** tab in GitHub
 2. Select **Deploy Zero-Trust Explainer** workflow
 3. Click **Run workflow**
-4. Select branch (`main`)
+4. Select branch (`master`)
 5. Click **Run workflow**
 
 ## Detailed Setup
@@ -149,9 +149,10 @@ gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
 3. **Authenticate**: GitHub Actions authenticates to GCP using service account key
 4. **Build Backend**: Docker image built and pushed to Artifact Registry
 5. **Build Frontend**: Docker image built and pushed to Artifact Registry
-6. **Terraform Plan**: Creates deployment plan with new image URLs
-7. **Terraform Apply**: Deploys/updates infrastructure with new images
-8. **Display URLs**: Shows backend and frontend URLs
+6. **Enable Prerequisite APIs**: Automatically enables `cloudresourcemanager.googleapis.com` and `iam.googleapis.com` (required for Terraform)
+7. **Terraform Plan**: Creates deployment plan with new image URLs
+8. **Terraform Apply**: Deploys/updates infrastructure with new images
+9. **Display URLs**: Shows backend and frontend URLs
 
 ### Workflow File Structure
 
@@ -219,9 +220,22 @@ gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
 - Verify Docker authentication worked
 - Check repository format matches: `{region}-docker.pkg.dev/{project-id}/{repo}/{image}`
 
-#### 5. Terraform Plan Fails
+#### 5. Terraform Plan Fails - Prerequisite APIs Not Enabled
 
-**Problem**: `Terraform plan failed`
+**Problem**: `Cloud Resource Manager API has not been used` or `IAM API has not been used`
+
+**Solutions**:
+- The workflow now automatically enables `cloudresourcemanager.googleapis.com` and `iam.googleapis.com` before Terraform runs
+- If you still see this error, wait a few minutes for APIs to propagate
+- You can also enable manually:
+  ```bash
+  gcloud services enable cloudresourcemanager.googleapis.com --project=${GCP_PROJECT_ID}
+  gcloud services enable iam.googleapis.com --project=${GCP_PROJECT_ID}
+  ```
+
+#### 6. Terraform Plan Fails - Other Errors
+
+**Problem**: `Terraform plan failed` (other errors)
 
 **Solutions**:
 - Check Terraform plan output in logs
@@ -229,7 +243,7 @@ gcloud projects add-iam-policy-binding ${GCP_PROJECT_ID} \
 - Check service account has Terraform permissions
 - Verify Secret Manager secret exists (if using)
 
-#### 6. Secret Manager Issues
+#### 7. Secret Manager Issues
 
 **Problem**: `Secret not found` or `Permission denied`
 
