@@ -75,7 +75,27 @@ function App() {
       summaryData.risk_overview = safeToString(summaryData.risk_overview, 'Not available.')
       summaryData.business_impact = safeToString(summaryData.business_impact, 'Not available.')
       summaryData.compliance_status = safeToString(summaryData.compliance_status, 'Not available.')
-      summaryData.remediation_roadmap = safeToString(summaryData.remediation_roadmap, 'No roadmap available.')
+      
+      // Preserve remediation_roadmap as-is if it's an object/JSON (for nice formatting)
+      // Only convert to string if it's not an object
+      if (summaryData.remediation_roadmap) {
+        if (typeof summaryData.remediation_roadmap === 'object' && summaryData.remediation_roadmap !== null) {
+          // Keep as object for structured formatting
+          // Do nothing - keep the object
+        } else if (typeof summaryData.remediation_roadmap === 'string') {
+          // Try to parse JSON string, but keep original if parsing fails
+          try {
+            if (summaryData.remediation_roadmap.trim().startsWith('{') || summaryData.remediation_roadmap.trim().startsWith('[')) {
+              const parsed = JSON.parse(summaryData.remediation_roadmap)
+              if (typeof parsed === 'object' && parsed !== null) {
+                summaryData.remediation_roadmap = parsed
+              }
+            }
+          } catch (e) {
+            // Keep as string if parsing fails
+          }
+        }
+      }
       
       // Normalize arrays to ensure they contain strings, not objects
       if (summaryData.top_concerns && Array.isArray(summaryData.top_concerns)) {
@@ -777,7 +797,72 @@ function App() {
 
                   <div className="summary-section">
                     <h4>Remediation Roadmap</h4>
-                    <p>{parsedSummaryData.remediation_roadmap ?? "No roadmap available."}</p>
+                    {(() => {
+                      const roadmap = parsedSummaryData.remediation_roadmap
+                      if (!roadmap) {
+                        return <p>No roadmap available.</p>
+                      }
+                      
+                      // Try to parse JSON string if it's a string
+                      let parsedRoadmap = roadmap
+                      if (typeof roadmap === 'string') {
+                        try {
+                          // Check if it's JSON
+                          if (roadmap.trim().startsWith('{') || roadmap.trim().startsWith('[')) {
+                            parsedRoadmap = JSON.parse(roadmap)
+                          }
+                        } catch (e) {
+                          // Not JSON, use as string
+                          parsedRoadmap = roadmap
+                        }
+                      }
+                      
+                      // If it's an object with phases, format it nicely
+                      if (typeof parsedRoadmap === 'object' && parsedRoadmap !== null) {
+                        // Check if it has phases array
+                        if (parsedRoadmap.phases && Array.isArray(parsedRoadmap.phases)) {
+                          return (
+                            <div className="remediation-roadmap-phases">
+                              {parsedRoadmap.phases.map((phase, index) => (
+                                <div key={index} className="remediation-roadmap-phase">
+                                  <h5>
+                                    Phase {index + 1}
+                                    {phase.priority && (
+                                      <span className={`phase-priority ${phase.priority.toLowerCase()}`}>
+                                        {phase.priority}
+                                      </span>
+                                    )}
+                                  </h5>
+                                  {phase.actions && Array.isArray(phase.actions) && (
+                                    <ul>
+                                      {phase.actions.map((action, actionIndex) => (
+                                        <li key={actionIndex}>
+                                          {typeof action === 'string' ? action : (action.description || action.text || JSON.stringify(action))}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                  {phase.description && (
+                                    <p style={{ marginTop: '0.5rem', color: '#666', fontSize: '0.9rem' }}>
+                                      {typeof phase.description === 'string' ? phase.description : JSON.stringify(phase.description)}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        }
+                        // If it's just an object, try to display it formatted
+                        return (
+                          <div className="remediation-roadmap">
+                            {JSON.stringify(parsedRoadmap, null, 2)}
+                          </div>
+                        )
+                      }
+                      
+                      // Otherwise, display as plain text
+                      return <p className="remediation-roadmap">{parsedRoadmap}</p>
+                    })()}
                   </div>
 
                   {parsedSummaryData.recommendations?.length > 0 && (
