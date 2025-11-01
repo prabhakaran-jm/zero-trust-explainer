@@ -55,6 +55,7 @@ User Browser → Frontend (React) → Backend API (FastAPI) → AI Studio (Gemin
 - **GCS Bucket**: Report storage with signed URLs
 - **Secret Manager**: Secure storage for Gemini API key
 - **Google AI Studio**: Gemini Pro integration for intelligent analysis
+  - **Try the prompts in AI Studio:** https://ai.studio/apps/drive/1zJDtAA4MbLprQbdSmbplA0winFyDPV-r
 
 ## Prerequisites
 

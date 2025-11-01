@@ -593,6 +593,12 @@ async def get_findings(
         List of findings
     """
     try:
+        # Normalize severity filter (handle empty string, None, or whitespace)
+        if severity and isinstance(severity, str) and severity.strip():
+            severity_filter = severity.strip().lower()
+        else:
+            severity_filter = None
+        
         # Build query
         query = f"""
         SELECT 
@@ -608,22 +614,28 @@ async def get_findings(
         WHERE job_id = @job_id
         """
         
-        if severity:
+        # Configure query parameters
+        query_parameters = [
+            bigquery.ScalarQueryParameter("job_id", "STRING", job_id),
+        ]
+        
+        # Add severity filter if provided (normalized to uppercase to match BigQuery storage)
+        if severity_filter:
+            # Convert to uppercase to match what's stored in BigQuery (CRITICAL, HIGH, etc.)
+            severity_upper = severity_filter.upper()
             query += " AND LOWER(severity) = LOWER(@severity)"
+            query_parameters.append(
+                bigquery.ScalarQueryParameter("severity", "STRING", severity_upper)
+            )
+            logger.info(f"Applying severity filter: {severity_upper} for job_id={job_id}")
+        else:
+            logger.info(f"No severity filter applied for job_id={job_id}")
         
         query += f" ORDER BY created_at DESC LIMIT {limit}"
         
-        # Configure query parameters
         job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("job_id", "STRING", job_id),
-            ]
+            query_parameters=query_parameters
         )
-        
-        if severity:
-            job_config.query_parameters.append(
-                bigquery.ScalarQueryParameter("severity", "STRING", severity)
-            )
         
         # Execute query
         query_job = bq_client.query(query, job_config=job_config)

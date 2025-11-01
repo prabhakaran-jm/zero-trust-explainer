@@ -306,6 +306,19 @@ Frontend Display (React/Vite)
 
 ---
 
+## AI Studio Shareable Link
+
+**For Hackathon Submission:**
+
+**Live Prompts in AI Studio:** https://ai.studio/apps/drive/1zJDtAA4MbLprQbdSmbplA0winFyDPV-r
+
+You can test and interact with these prompts directly in Google AI Studio using the link above. The app demonstrates all three analysis types:
+- Security Finding Explanation
+- Executive Summary Generation
+- Terraform Fix Proposal
+
+---
+
 ## References
 
 - **Google AI Studio**: https://aistudio.google.com/
