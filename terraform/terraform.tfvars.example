@@ -64,6 +64,14 @@ gemini_api_key = ""  # Optional - only for initial secret creation
 # These URLs will be shown in the frontend header as quick links
 # All are optional - leave commented out if not needed
 
+# IMPORTANT: For CI/CD (GitHub Actions), configure these via GitHub Secrets:
+#   - DEMO_VIDEO_URL
+#   - REPO_URL
+#   - ARCH_URL
+#   - AI_STUDIO_URL
+# See docs/DEPLOYMENT.md for details.
+
+# For LOCAL DEPLOYMENT ONLY, you can uncomment and set these:
 # URL to demo video (e.g., YouTube, Vimeo)
 # demo_video_url = "https://www.youtube.com/watch?v=your-video-id"
 

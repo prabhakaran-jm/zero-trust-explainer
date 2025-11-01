@@ -324,6 +324,12 @@ $env:GCP_PROJECT_ID = "your-project-id"
    - Add `GCP_PROJECT_ID`: Your project ID
    - Add `GCP_SA_KEY`: Contents of `github-actions-key.json` (from setup script)
    - Add `GEMINI_API_KEY`: (Optional) Your API key (only for initial Secret Manager setup)
+   
+   **Optional - Quick Links URLs** (for frontend header):
+   - `DEMO_VIDEO_URL`: URL to demo video
+   - `REPO_URL`: URL to GitHub repository
+   - `ARCH_URL`: URL to architecture diagram
+   - `AI_STUDIO_URL`: URL to AI Studio prompts/app
 
 3. **Deploy**:
 ```bash
@@ -337,6 +343,14 @@ git push origin main
 ```
 
 **Note**: The API key is stored in GCP Secret Manager after first deployment. After that, you can remove `GEMINI_API_KEY` from GitHub Secrets.
+
+**Quick Links Configuration**: To display quick links in the frontend header (Video, Repo, Architecture, AI Studio), add these optional GitHub Secrets:
+- `DEMO_VIDEO_URL`: URL to demo video
+- `REPO_URL`: URL to GitHub repository  
+- `ARCH_URL`: URL to architecture diagram
+- `AI_STUDIO_URL`: URL to AI Studio prompts/app
+
+These URLs will be automatically injected into the frontend at runtime. See `docs/DEPLOYMENT.md` for details.
 
 ## API Usage
 
@@ -410,7 +424,13 @@ curl https://your-backend-url/jobs?limit=50
 **Note**: In Cloud Run, `GEMINI_API_KEY` is automatically injected from GCP Secret Manager. For local development, set it in your `.env` file.
 
 ### Frontend
-- `VITE_API_URL` - Backend API URL
+- `VITE_API_URL` - Backend API URL (automatically injected from Cloud Run service environment variables)
+- `VITE_DEMO_VIDEO_URL` - URL to demo video (optional, configured via GitHub Secrets for CI/CD)
+- `VITE_REPO_URL` - URL to GitHub repository (optional, configured via GitHub Secrets for CI/CD)
+- `VITE_ARCH_URL` - URL to architecture diagram (optional, configured via GitHub Secrets for CI/CD)
+- `VITE_AI_STUDIO_URL` - URL to AI Studio prompts/app (optional, configured via GitHub Secrets for CI/CD)
+
+**Note**: In Cloud Run, these URLs are automatically injected into the frontend at runtime via `config.js`. For CI/CD deployments, configure them via GitHub Secrets. For local deployments, you can use `terraform.tfvars`.
 
 ## BigQuery Schema
 

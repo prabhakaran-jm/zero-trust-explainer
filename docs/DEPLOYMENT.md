@@ -90,6 +90,8 @@ terraform init
    ```
    
    **Note**: See `terraform/terraform.tfvars.example` for a complete template with all options documented.
+   
+   **Important**: For CI/CD deployments (GitHub Actions), quick link URLs should be configured via GitHub Secrets (not in terraform.tfvars). See [Step 4: GitHub Actions CI/CD](#step-4-github-actions-cicd) for details. The `terraform.tfvars` file is primarily for local/manual deployments.
 
 4. **Set up Secret Manager (Optional - if not providing API key in tfvars)**:
    ```bash
@@ -275,6 +277,14 @@ gcloud iam service-accounts keys create key.json \
    - `GCP_PROJECT_ID`: Your GCP project ID
    - `GCP_SA_KEY`: Contents of the `key.json` file
    - `GEMINI_API_KEY`: Your Google AI Studio API key (optional - only if Terraform will create the secret)
+   
+   **Optional - Quick Links URLs** (for frontend header links):
+   - `DEMO_VIDEO_URL`: URL to demo video (e.g., YouTube, Vimeo)
+   - `REPO_URL`: URL to GitHub repository
+   - `ARCH_URL`: URL to architecture diagram
+   - `AI_STUDIO_URL`: URL to AI Studio prompts/app (using Share App functionality)
+   
+   **Note**: These quick link URLs will be automatically injected into the frontend at runtime.
 
 ### Trigger Deployment
 

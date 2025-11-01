@@ -75,6 +75,23 @@ Get-Content github-actions-key.json
 - **Value**: Your Google AI Studio API key
 - **Note**: Only needed for initial Secret Manager setup. Can be removed after first deployment.
 
+#### Secrets 4-7: Quick Links URLs (Optional)
+These secrets configure the quick links shown in the frontend header:
+
+- **Name**: `DEMO_VIDEO_URL`
+- **Value**: URL to demo video (e.g., `https://www.youtube.com/watch?v=your-video-id`)
+
+- **Name**: `REPO_URL`
+- **Value**: URL to GitHub repository (e.g., `https://github.com/your-username/your-repo`)
+
+- **Name**: `ARCH_URL`
+- **Value**: URL to architecture diagram (e.g., `https://example.com/architecture-diagram.png`)
+
+- **Name**: `AI_STUDIO_URL`
+- **Value**: URL to AI Studio prompts/app (e.g., `https://aistudio.google.com/app/YOUR_APP_ID`)
+
+**Note**: These are optional. Only add the secrets for links you want to display. They will be automatically injected into the frontend at runtime.
+
 ### Step 4: Delete Key File
 
 For security, delete the key file after copying:

@@ -92,7 +92,14 @@ function App() {
       setLoading(true)
       setError(null)
       const data = await api.listJobs()
-      setJobs(data.jobs || [])
+      // Sort jobs by first_finding_at descending (newest first)
+      const sortedJobs = (data.jobs || []).sort((a, b) => {
+        if (!a.first_finding_at && !b.first_finding_at) return 0
+        if (!a.first_finding_at) return 1
+        if (!b.first_finding_at) return -1
+        return new Date(b.first_finding_at) - new Date(a.first_finding_at)
+      })
+      setJobs(sortedJobs)
     } catch (err) {
       setError('Failed to load jobs: ' + err.message)
       console.error('Error loading jobs:', err)
@@ -125,25 +132,31 @@ function App() {
       const result = await api.submitScan(serviceName, region, projectId)
       const jobId = result.job_id
       
-                    notify.ok(`Scan scheduled — job ${jobId.substring(0, 8)}...`)
-                    
-                    // Start auto-refresh polling for ~20 seconds
-                    setAutoRefresh(true)
-                    setLoading(false)
-                    
-                    // Update URL hash for deep linking
-                    window.history.replaceState(null, '', '#jobs')
-                    
-                    // Force immediate fetch to check for new job (polling will continue automatically)
-                    // Give it a moment for the job to appear in BigQuery
-                    setTimeout(() => {
-                        fetchJobs()
-                    }, 2000)
-                    
-                    // Also fetch again after a longer delay to catch jobs that take time to process
-                    setTimeout(() => {
-                        fetchJobs()
-                    }, 5000)
+      notify.ok(`Scan scheduled — job ${jobId.substring(0, 8)}...`)
+      
+      // Update URL hash for deep linking
+      window.history.replaceState(null, '', '#jobs')
+      
+      // Start auto-refresh polling for ~20 seconds
+      setAutoRefresh(true)
+      setLoading(false)
+      
+      // Immediately refresh the jobs list (polling will continue automatically)
+      // This ensures we see the new job as soon as it appears in BigQuery
+      loadJobs()
+      
+      // Also fetch again after delays to catch jobs that take time to process
+      setTimeout(() => {
+        fetchJobs()
+      }, 2000)
+      
+      setTimeout(() => {
+        fetchJobs()
+      }, 5000)
+      
+      setTimeout(() => {
+        fetchJobs()
+      }, 10000)
     } catch (err) {
       notify.err('Failed to schedule scan: ' + err.message)
       setError('Failed to submit scan: ' + err.message)
