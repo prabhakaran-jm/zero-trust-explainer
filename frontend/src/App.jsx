@@ -5,6 +5,7 @@ import JobCard from './components/JobCard'
 import FindingsList from './components/FindingsList'
 import HealthChip from './components/HealthChip'
 import Spinner from './components/Spinner'
+import QuickLinks from './components/QuickLinks'
 import { api } from './services/api'
 import { notify } from './utils/notify'
 import { copyToClipboard, copyText } from './utils/clipboard'
@@ -318,13 +319,6 @@ function App() {
     }
   }
 
-  // Quick links from env vars - only show if values exist
-  const links = [
-    { label: 'Video', href: import.meta.env.VITE_DEMO_VIDEO_URL },
-    { label: 'Repo', href: import.meta.env.VITE_REPO_URL },
-    { label: 'Architecture', href: import.meta.env.VITE_ARCH_URL },
-    { label: 'AI Studio', href: import.meta.env.VITE_AI_STUDIO_URL }
-  ].filter(x => !!x.href)
 
   return (
     <div className="App">
@@ -335,22 +329,10 @@ function App() {
             <p>Human-readable IAM diffs for Cloud Run</p>
           </div>
           <div className="header-right">
-            <HealthChip apiBase={import.meta.env.VITE_API_URL || 'http://localhost:8080'} />
-            {links.length > 0 && (
-              <nav className="quick-links">
-                {links.map(l => (
-                  <a 
-                    key={l.label} 
-                    href={l.href} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="quick-link-item"
-                  >
-                    {l.label}
-                  </a>
-                ))}
-              </nav>
-            )}
+            <div className="header-right-content">
+              <QuickLinks />
+              <HealthChip apiBase={import.meta.env.VITE_API_URL || 'http://localhost:8080'} />
+            </div>
           </div>
         </div>
         {aiStatus && (
