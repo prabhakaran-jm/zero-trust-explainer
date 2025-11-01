@@ -9,7 +9,7 @@ function HealthChip({ apiBase }) {
   useEffect(() => {
     let cancelled = false
 
-    fetch(`${apiBase}/healthz`, { method: 'GET' })
+    fetch(`${apiBase}/health`, { method: 'GET' })
       .then(r => (r.ok ? 'ok' : 'bad'))
       .catch(() => 'bad')
       .then(s => {

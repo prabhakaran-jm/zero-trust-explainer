@@ -261,7 +261,42 @@ terraform plan
 terraform apply
 ```
 
-### 5. GitHub Actions Deployment
+### 5. Manual Frontend Deployment (Quick Testing)
+
+For quick frontend deployments during testing:
+
+```powershell
+# Set variables
+$projectId = "gcr-hackathon"
+$region = "us-central1"
+$backendUrl = "https://zte-backend-api-gcr-hackathon.us-central1.run.app"  # Get from terraform output
+
+# Build and push frontend
+cd frontend
+$imageName = "$region-docker.pkg.dev/$projectId/zte-repo/frontend:latest"
+docker build --build-arg "VITE_API_URL=$backendUrl" -t $imageName .
+docker push $imageName
+
+# Deploy to Cloud Run
+gcloud run deploy zte-frontend `
+    --image $imageName `
+    --region $region `
+    --project $projectId `
+    --allow-unauthenticated `
+    --platform managed `
+    --set-env-vars "VITE_API_URL=$backendUrl" `
+    --memory 512Mi `
+    --cpu 1 `
+    --timeout 300 `
+    --max-instances 5 `
+    --min-instances 0
+
+cd ..
+```
+
+See `docs/FRONTEND_DEPLOYMENT.md` for more details.
+
+### 6. GitHub Actions Deployment
 
 1. Create GCP Service Account with required permissions:
 ```bash
