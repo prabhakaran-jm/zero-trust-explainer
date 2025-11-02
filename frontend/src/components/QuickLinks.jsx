@@ -17,18 +17,6 @@ export default function QuickLinks() {
   // Read from runtime config (injected by entrypoint.sh) or fallback to build-time env vars
   const config = window.__APP_CONFIG__ || {};
   
-  // Debug logging
-  console.log('QuickLinks config:', {
-    hasWindowConfig: !!window.__APP_CONFIG__,
-    config: config,
-    envVars: {
-      DEMO_VIDEO_URL: import.meta.env.VITE_DEMO_VIDEO_URL,
-      REPO_URL: import.meta.env.VITE_REPO_URL,
-      ARCH_URL: import.meta.env.VITE_ARCH_URL,
-      AI_STUDIO_URL: import.meta.env.VITE_AI_STUDIO_URL
-    }
-  });
-  
   const links = [
     { label: 'Video', href: config.DEMO_VIDEO_URL || import.meta.env.VITE_DEMO_VIDEO_URL, icon: IconVideo },
     { label: 'Repo', href: config.REPO_URL || import.meta.env.VITE_REPO_URL, icon: IconRepo },
@@ -36,13 +24,8 @@ export default function QuickLinks() {
     { label: 'AI Studio', href: config.AI_STUDIO_URL || import.meta.env.VITE_AI_STUDIO_URL, icon: IconAIStudio },
   ].filter(x => {
     const hasHref = (x?.href || '').trim().length > 0;
-    if (!hasHref) {
-      console.log(`QuickLinks: Filtering out "${x.label}" - no URL provided`);
-    }
     return hasHref;
   });
-  
-  console.log('QuickLinks filtered links:', links);
 
   if (!links.length) return null;
 

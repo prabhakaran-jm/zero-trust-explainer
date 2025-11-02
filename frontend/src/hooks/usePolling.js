@@ -30,26 +30,20 @@ export default function usePolling(fn, intervalMs, enabled) {
     }
 
     if (!enabled) {
-      console.log('[usePolling] Polling disabled, cleaning up...')
       cleanup()
       return
     }
 
-    console.log('[usePolling] Starting polling with interval:', intervalMs, 'ms')
-
     // Call immediately on enable (no delay)
-    console.log('[usePolling] Calling function immediately')
     savedCallback.current()
 
     // Set up interval for subsequent calls
     intervalRef.current = setInterval(() => {
-      console.log('[usePolling] Interval tick - calling function')
       savedCallback.current()
     }, intervalMs)
 
     // Return cleanup function
     return () => {
-      console.log('[usePolling] Cleaning up polling on unmount/re-run')
       cleanup()
     }
   }, [intervalMs, enabled])

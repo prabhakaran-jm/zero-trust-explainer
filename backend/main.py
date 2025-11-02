@@ -31,9 +31,21 @@ app = FastAPI(
 )
 
 # CORS configuration
+# For production, restrict to specific frontend URL
+# For development, allow localhost
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "")
+ALLOWED_ORIGINS = ["*"]  # Default: allow all (for hackathon demo)
+if FRONTEND_URL:
+    # If FRONTEND_URL is set, restrict to that origin
+    ALLOWED_ORIGINS = [
+        FRONTEND_URL,
+        "http://localhost:5173",  # Vite dev server
+        "http://localhost:3000",  # Alternative dev port
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
