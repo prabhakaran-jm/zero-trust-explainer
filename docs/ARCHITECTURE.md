@@ -43,7 +43,7 @@
   - Scan submission form
   - Job listing with severity breakdown
   - Findings viewer with filters
-  - Explain and Propose actions
+  - Explain, Summary, and Propose actions
   - Real-time status updates
 
 ### Backend API (FastAPI)
@@ -53,6 +53,7 @@
   - POST /scan - Submit new scan request
   - GET /findings/{job_id} - Retrieve findings
   - GET /explain/{finding_id} - Get detailed explanation
+  - GET /summary/{job_id} - Generate AI-powered executive summary
   - POST /propose/{job_id} - Trigger fix proposal
   - GET /jobs - List recent jobs
 
@@ -96,9 +97,18 @@
 1. User clicks "Explain" on a finding
 2. Frontend calls GET /explain/{finding_id}
 3. Backend queries BigQuery for detailed finding data
-4. Backend formats explanation with blast radius
+4. Backend calls AI Studio to generate explanation with blast radius
 5. Backend returns structured explanation
 6. Frontend displays explanation to user
+
+### Summary Workflow
+1. User clicks "AI Summary" on a job
+2. Frontend calls GET /summary/{job_id}
+3. Backend queries BigQuery for all findings in the job
+4. Backend calls AI Studio to generate executive summary
+5. AI returns comprehensive summary with risk overview, compliance status, and remediation roadmap
+6. Backend returns summary data
+7. Frontend displays formatted summary modal with phase-based roadmap
 
 ### Propose Workflow
 1. User clicks "Propose" for a job

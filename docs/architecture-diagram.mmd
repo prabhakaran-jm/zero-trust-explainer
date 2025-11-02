@@ -38,6 +38,12 @@ graph TB
     Backend -->|Query| BigQuery
     Backend -->|JSON Data| Frontend
 
+    %% AI Summary Flow
+    Backend -->|"AI Summary"| AI
+    AI -->|JSON Summary| Backend
+    Backend -->|Query Findings| BigQuery
+    Backend -->|Summary Data| Frontend
+
     %% Scan Workflow
     Backend -->|Publish| PubSub
     PubSub -->|Trigger| ScanJob

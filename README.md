@@ -26,6 +26,7 @@ Zero-Trust Explainer is a comprehensive security scanning and analysis tool for 
 User Browser → Frontend (React) → Backend API (FastAPI) → AI Studio (Gemini Pro)
                                                         → Pub/Sub → Scan Job → BigQuery
                                                         → Propose Job → Cloud Storage
+                                                        → AI Summary (direct from Backend)
 ```
 
 **Note**: The Scan Processor can optionally run as a **Cloud Run Worker Pool** for continuous processing instead of an on-demand Job. See [Architecture Options](#architecture-options) below for details on when to use each approach.
@@ -41,7 +42,7 @@ User Browser → Frontend (React) → Backend API (FastAPI) → AI Studio (Gemin
 ### Frontend (React/Vite)
 - 🤖 AI-powered job cards with intelligent severity breakdown
 - Advanced filtering by job_id and severity
-- Actions: Scan, Refresh, 🤖 AI Explain, 🤖 AI Propose
+- Actions: Scan, Refresh, 🤖 AI Explain, 📊 AI Summary, 🤖 AI Propose
 - Real-time updates and loading states with AI indicators
 - Beautiful modal displays for AI-generated content
 
