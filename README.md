@@ -6,6 +6,15 @@
 
 This project demonstrates the power of AI agents, MCP (Model Context Protocol), and intelligent security analysis on Google Cloud Run with production-grade optimizations.
 
+<div align="center">
+
+![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square&logo=apache&logoColor=white&labelColor=2d3748&color=0ea5e9)
+![Platform](https://img.shields.io/badge/Platform-Google%20Cloud%20Run-blue?style=flat-square&logo=google-cloud&logoColor=white&labelColor=2d3748&color=0ea5e9)
+![Infrastructure](https://img.shields.io/badge/Infrastructure-Terraform-purple?style=flat-square&logo=terraform&logoColor=white&labelColor=2d3748&color=a855f7)
+![Environment](https://img.shields.io/badge/Environment-Dev%20%7C%20Prod-green?style=flat-square&labelColor=2d3748&color=22c55e)
+
+</div>
+
 ---
 
 ## 🎯 Features
@@ -666,12 +675,3 @@ This project is provided as-is for demonstration purposes.
 
 For issues and questions, please open a GitHub issue.
 
----
-
-## 🏷️ Badges
-
-<div align="center">
-
-**License** Apache 2.0 | **Platform** Google Cloud Run | **Infrastructure** Terraform | **Environment** Dev | Prod
-
-</div>
