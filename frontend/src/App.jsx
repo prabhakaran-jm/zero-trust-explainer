@@ -109,15 +109,34 @@ function App() {
         })
       }
       
-      if (summaryData.recommendations && Array.isArray(summaryData.recommendations)) {
-        summaryData.recommendations = summaryData.recommendations.map(item => {
-          if (typeof item === 'string') return item
-          if (typeof item === 'object' && item !== null) {
-            // Convert object to string representation
-            return item.recommendation || item.suggestion || item.text || JSON.stringify(item)
+      // Normalize recommendations to always be an array
+      if (summaryData.recommendations) {
+        if (Array.isArray(summaryData.recommendations)) {
+          summaryData.recommendations = summaryData.recommendations.map(item => {
+            if (typeof item === 'string') return item
+            if (typeof item === 'object' && item !== null) {
+              // Convert object to string representation
+              return item.recommendation || item.suggestion || item.text || JSON.stringify(item)
+            }
+            return String(item)
+          })
+        } else if (typeof summaryData.recommendations === 'string') {
+          // If it's a single string, convert to array
+          summaryData.recommendations = [summaryData.recommendations]
+        } else if (typeof summaryData.recommendations === 'object') {
+          // If it's an object, try to extract or convert to array
+          if (summaryData.recommendations.recommendations && Array.isArray(summaryData.recommendations.recommendations)) {
+            summaryData.recommendations = summaryData.recommendations.recommendations
+          } else {
+            summaryData.recommendations = [JSON.stringify(summaryData.recommendations)]
           }
-          return String(item)
-        })
+        } else {
+          // Convert any other type to array
+          summaryData.recommendations = [String(summaryData.recommendations)]
+        }
+      } else {
+        // Ensure it's an empty array if missing
+        summaryData.recommendations = []
       }
       
       setParsedSummaryData(summaryData)
@@ -952,7 +971,7 @@ function App() {
                     })()}
                   </div>
 
-                  {parsedSummaryData.recommendations?.length > 0 && (
+                  {parsedSummaryData.recommendations && Array.isArray(parsedSummaryData.recommendations) && parsedSummaryData.recommendations.length > 0 && (
                     <div className="summary-section">
                       <h4>Strategic Recommendations</h4>
                       <ul>
