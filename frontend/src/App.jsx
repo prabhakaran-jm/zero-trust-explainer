@@ -842,22 +842,49 @@ function App() {
                         
                         // Helper function to render a phase
                         const renderPhase = (phase, index) => {
-                          // Extract phase name from phase.phase or phase.name or default to "Phase {index + 1}"
-                          const phaseName = phase.phase || phase.name || `Phase ${index + 1}`
+                          console.log(`Rendering phase ${index}:`, phase)
+                          console.log(`Phase keys:`, Object.keys(phase || {}))
                           
-                          // Determine priority from phase.priority or infer from phase name
-                          let priority = phase.priority
-                          if (!priority && phaseName) {
-                            const nameLower = phaseName.toLowerCase()
-                            if (nameLower.includes('immediate') || nameLower.includes('critical')) {
-                              priority = 'IMMEDIATE'
-                            } else if (nameLower.includes('short') || nameLower.includes('high')) {
-                              priority = 'HIGH'
-                            } else if (nameLower.includes('mid') || nameLower.includes('medium')) {
-                              priority = 'MEDIUM'
-                            } else if (nameLower.includes('long') || nameLower.includes('low')) {
-                              priority = 'LOW'
+                          // Handle different phase structures
+                          let phaseName = null
+                          let priority = null
+                          let actions = null
+                          let description = null
+                          
+                          // If phase is a string, use it as description
+                          if (typeof phase === 'string') {
+                            description = phase
+                            phaseName = `Phase ${index + 1}`
+                          } else if (typeof phase === 'object' && phase !== null) {
+                            // Extract phase name from various possible fields
+                            phaseName = phase.phase || phase.name || phase.title || phase.label || `Phase ${index + 1}`
+                            
+                            // Extract priority from various possible fields or infer from name
+                            priority = phase.priority || phase.severity || phase.level
+                            if (!priority && phaseName) {
+                              const nameLower = String(phaseName).toLowerCase()
+                              if (nameLower.includes('immediate') || nameLower.includes('critical')) {
+                                priority = 'IMMEDIATE'
+                              } else if (nameLower.includes('short') || nameLower.includes('high')) {
+                                priority = 'HIGH'
+                              } else if (nameLower.includes('mid') || nameLower.includes('medium')) {
+                                priority = 'MEDIUM'
+                              } else if (nameLower.includes('long') || nameLower.includes('low')) {
+                                priority = 'LOW'
+                              } else if (nameLower.includes('ongoing') || nameLower.includes('continuous')) {
+                                priority = 'LOW' // Map ongoing to LOW priority badge
+                              }
                             }
+                            
+                            // Extract actions - could be actions, items, steps, tasks, etc.
+                            actions = phase.actions || phase.items || phase.steps || phase.tasks || phase.action || null
+                            if (actions && !Array.isArray(actions)) {
+                              // If it's a single string, convert to array
+                              actions = [actions]
+                            }
+                            
+                            // Extract description
+                            description = phase.description || phase.text || phase.content || null
                           }
                           
                           return (
@@ -865,23 +892,23 @@ function App() {
                               <h5>
                                 {phaseName}
                                 {priority && (
-                                  <span className={`phase-priority ${priority.toLowerCase().replace('_', '-')}`}>
+                                  <span className={`phase-priority ${priority.toLowerCase().replace(/_/g, '-')}`}>
                                     {priority}
                                   </span>
                                 )}
                               </h5>
-                              {phase.actions && Array.isArray(phase.actions) && (
+                              {actions && Array.isArray(actions) && actions.length > 0 && (
                                 <ul>
-                                  {phase.actions.map((action, actionIndex) => (
+                                  {actions.map((action, actionIndex) => (
                                     <li key={actionIndex}>
-                                      {typeof action === 'string' ? action : (action.description || action.text || JSON.stringify(action))}
+                                      {typeof action === 'string' ? action : (action.description || action.text || action.action || JSON.stringify(action))}
                                     </li>
                                   ))}
                                 </ul>
                               )}
-                              {phase.description && (
+                              {description && (
                                 <p style={{ marginTop: '0.5rem', color: '#666', fontSize: '0.9rem' }}>
-                                  {typeof phase.description === 'string' ? phase.description : JSON.stringify(phase.description)}
+                                  {typeof description === 'string' ? description : JSON.stringify(description)}
                                 </p>
                               )}
                             </div>
