@@ -32,7 +32,7 @@ This project demonstrates the power of Google AI Studio and Gemini Pro for intel
 
 ## 🏗️ Architecture
 
-![Architecture Diagram](docs/architecture-diagram.png)
+![Architecture Diagram](docs/zte-architecture.png)
 
 **Architecture Flow:**
 ```
@@ -656,7 +656,7 @@ zero-trust-explainer/
 │   ├── API.md             # API reference
 │   ├── ARCHITECTURE.md    # System architecture
 │   ├── DEPLOYMENT.md      # Deployment guide
-│   └── architecture-diagram.png  # Architecture diagram
+│   └── zte-architecture.png  # Architecture diagram
 └── scripts/
     ├── create-test-service.sh   # Create vulnerable service (Unix)
     ├── create-test-service.ps1  # Create vulnerable service (Windows)
