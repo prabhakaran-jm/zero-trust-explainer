@@ -901,6 +901,44 @@ function App() {
                           }
                         }
                         
+                        // Check if it's an object with phase keys (phase1, phase2, phase3, etc.)
+                        const phaseKeys = Object.keys(parsedRoadmap).filter(key => 
+                          /^phase\d+$/i.test(key) || key.toLowerCase().startsWith('phase')
+                        )
+                        if (phaseKeys.length > 0) {
+                          // Sort phases by key (phase1, phase2, phase3...)
+                          phaseKeys.sort((a, b) => {
+                            const numA = parseInt(a.match(/\d+/)?.[0] || '0')
+                            const numB = parseInt(b.match(/\d+/)?.[0] || '0')
+                            return numA - numB
+                          })
+                          
+                          // Convert to array of phase objects with proper structure
+                          const phasesArray = phaseKeys.map((key, index) => {
+                            const phaseData = parsedRoadmap[key]
+                            // If phaseData is already an object with priority/actions, use it
+                            if (typeof phaseData === 'object' && phaseData !== null) {
+                              // Ensure phase name is set from the key
+                              return {
+                                phase: key.charAt(0).toUpperCase() + key.slice(1).replace(/phase(\d+)/i, 'Phase $1'),
+                                ...phaseData
+                              }
+                            }
+                            // If it's a string or other type, wrap it
+                            return {
+                              phase: key.charAt(0).toUpperCase() + key.slice(1).replace(/phase(\d+)/i, 'Phase $1'),
+                              description: typeof phaseData === 'string' ? phaseData : JSON.stringify(phaseData),
+                              actions: typeof phaseData === 'string' ? [phaseData] : []
+                            }
+                          })
+                          
+                          return (
+                            <div className="remediation-roadmap-phases">
+                              {phasesArray.map(renderPhase)}
+                            </div>
+                          )
+                        }
+                        
                         // If it's just an object, try to display it formatted
                         return (
                           <div className="remediation-roadmap">
